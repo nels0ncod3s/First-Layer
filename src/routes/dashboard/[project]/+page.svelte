@@ -1,5 +1,5 @@
 <script>
-	import { goto } from "$app/navigation";
+	import { goto, preloadData } from "$app/navigation";
 	import { dashboard } from "$lib/stores/dashboard.svelte.js";
 
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
@@ -13,25 +13,43 @@
 	import Monitor from "@lucide/svelte/icons/monitor";
 	import ShieldCheck from "@lucide/svelte/icons/shield-check";
 	import UserPlus from "@lucide/svelte/icons/user-plus";
-	import Minus from "@lucide/svelte/icons/minus";
 	import KeyRound from "@lucide/svelte/icons/key-round";
 	import Github from "$lib/Icons/github-mark.svelte";
 	import Google from "$lib/Icons/google.svelte";
 
-	// `data.project` is inherited from dashboard/[project]/+layout.server.js
-	// — no load function needed on this page itself.
+	// `data.project` is inherited from dashboard/[project]/+layout.server.js.
+	// `data.stats` (userCount/signupsToday) is a streamed promise from this
+	// route's own +page.server.js — the cards render a loading state until
+	// it resolves, rather than blocking the whole navigation on it. Active
+	// Sessions / Verification Rate stay "—" — there's no session tracking or
+	// email verification in this system yet, so a real "0" there would
+	// misleadingly imply we're measuring it.
 	let { data } = $props();
 
-	// Mock data, same as Users/Logs/Settings — no real metrics backend yet.
-	const workspaceStats = [
-		{ label: "Total Users", value: "0", delta: "0%", icon: Users },
-		{ label: "Active Sessions", value: "0", delta: "0%", icon: Monitor },
-		{ label: "Verification Rate", value: "0%", delta: "0%", icon: ShieldCheck },
-		{ label: "Signups Today", value: "0", delta: "0%", icon: UserPlus }
+	function buildStats(stats) {
+		return [
+			{ label: "Total Users", value: String(stats.userCount), icon: Users },
+			{ label: "Signups Today", value: String(stats.signupsToday), icon: UserPlus },
+			{ label: "Active Sessions", value: "—", icon: Monitor },
+			{ label: "Verification Rate", value: "—", icon: ShieldCheck }
+		];
+	}
+
+	const placeholderStats = [
+		{ label: "Total Users", value: "…", icon: Users },
+		{ label: "Signups Today", value: "…", icon: UserPlus },
+		{ label: "Active Sessions", value: "—", icon: Monitor },
+		{ label: "Verification Rate", value: "—", icon: ShieldCheck }
 	];
 
 	const quickActions = [
-		{ label: "Create API key", icon: KeyRound, disabled: false },
+		{
+			label: "Create API key",
+			icon: KeyRound,
+			disabled: false,
+			onclick: () => goto(`/dashboard/${data.project.id}/API`),
+			onmouseenter: () => preloadData(`/dashboard/${data.project.id}/API`)
+		},
 		{ label: "Configure Google", icon: Google, disabled: true },
 		{ label: "Configure GitHub", icon: Github, disabled: true },
 		{ label: "Invite teammate", icon: UserPlus, disabled: true }
@@ -90,23 +108,35 @@
 
 		<!-- Stat cards -->
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-			{#each workspaceStats as stat (stat.label)}
-				<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
-					<div class="flex items-start justify-between gap-2">
-						<span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-zinc-500 leading-tight">{stat.label}</span>
-						<div class="h-7 w-7 shrink-0 rounded-md bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-							<stat.icon class="h-3.5 w-3.5 text-violet-400" />
+			{#await data.stats}
+				{#each placeholderStats as stat (stat.label)}
+					<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5 animate-pulse">
+						<div class="flex items-start justify-between gap-2">
+							<span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-zinc-500 leading-tight">{stat.label}</span>
+							<div class="h-7 w-7 shrink-0 rounded-md bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+								<stat.icon class="h-3.5 w-3.5 text-violet-400" />
+							</div>
+						</div>
+						<div class="mt-3">
+							<span class="text-2xl sm:text-3xl font-bold text-zinc-100">{stat.value}</span>
 						</div>
 					</div>
-					<div class="mt-3 flex items-end justify-between gap-2">
-						<span class="text-2xl sm:text-3xl font-bold text-zinc-100">{stat.value}</span>
-						<span class="flex items-center gap-0.5 text-xs font-medium text-zinc-500 whitespace-nowrap">
-							<Minus class="h-3 w-3 shrink-0" />
-							{stat.delta}
-						</span>
+				{/each}
+			{:then stats}
+				{#each buildStats(stats) as stat (stat.label)}
+					<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+						<div class="flex items-start justify-between gap-2">
+							<span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-zinc-500 leading-tight">{stat.label}</span>
+							<div class="h-7 w-7 shrink-0 rounded-md bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+								<stat.icon class="h-3.5 w-3.5 text-violet-400" />
+							</div>
+						</div>
+						<div class="mt-3">
+							<span class="text-2xl sm:text-3xl font-bold text-zinc-100">{stat.value}</span>
+						</div>
 					</div>
-				</div>
-			{/each}
+				{/each}
+			{/await}
 		</div>
 
 		<!-- Quick actions -->
@@ -117,6 +147,8 @@
 					<button
 						type="button"
 						disabled={action.disabled}
+						onclick={action.onclick}
+						onmouseenter={action.onmouseenter}
 						class="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-left text-sm font-medium text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900/70 transition-colors disabled:opacity-40 disabled:pointer-events-none"
 					>
 						<action.icon class="h-4 w-4 text-zinc-400 shrink-0" />

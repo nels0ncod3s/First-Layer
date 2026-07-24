@@ -1,6 +1,7 @@
 <script>
   import { enhance } from '$app/forms';
   import { onDestroy } from 'svelte';
+  import { toast } from 'svelte-sonner';
 
   // Lucide icon imports (matches the vibe of your sidebar)
   import User from "@lucide/svelte/icons/user";
@@ -59,8 +60,11 @@
         await update();
         isSaving = false;
         if (result.type === 'success') {
+          toast.success('Profile updated');
           if (previewUrl) URL.revokeObjectURL(previewUrl);
           previewUrl = null;
+        } else if (result.type === 'failure') {
+          toast.error(result.data?.error || 'Could not save profile.');
         }
       };
     }}

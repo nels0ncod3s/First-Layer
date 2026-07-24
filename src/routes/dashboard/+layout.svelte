@@ -2,6 +2,7 @@
 	import { page } from "$app/stores";
 	import { goto, preloadData } from "$app/navigation";
 	import { enhance } from "$app/forms";
+	import { toast } from "svelte-sonner";
 	import { dashboard } from "$lib/stores/dashboard.svelte.js";
 
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -41,9 +42,12 @@
 	function submitCreate() {
 		return async ({ result, update }) => {
 			if (result.type === "success" && result.data?.project) {
+				toast.success(`"${result.data.project.name}" created`);
 				dashboard.addProject(result.data.project);
 			} else if (result.type === "failure" && result.data?.field === "name") {
 				dashboard.nameError = result.data.message;
+			} else if (result.type === "failure") {
+				toast.error(result.data?.message || "Could not create project.");
 			}
 			// Don't reset form fields on failure so the user doesn't lose their input.
 			await update({ reset: result.type === "success" });
@@ -57,8 +61,16 @@
 				// If the project being deleted is the one currently open,
 				// navigate back to the grid — its route would otherwise 404.
 				const wasActive = $page.params.project === result.data.deletedId;
+				toast.success("Project deleted");
 				dashboard.removeProject(result.data.deletedId);
-				if (wasActive) goto("/dashboard");
+				// Await this BEFORE update() below: update() triggers
+				// invalidateAll(), which would otherwise re-run the deleted
+				// project's own load() (404ing on a row that's already
+				// gone) while still on that route, racing against this
+				// navigation instead of happening safely after it.
+				if (wasActive) await goto("/dashboard");
+			} else if (result.type === "failure") {
+				toast.error(result.data?.message || "Could not delete project.");
 			}
 			await update();
 		};
@@ -80,9 +92,15 @@
 
 	<main class="flex-1 min-w-0 bg-[#0a0a0b] min-h-screen text-zinc-100">
 
-		<!-- Sticky header — single consolidated breadcrumb bar. -->
-		<header class="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-800 bg-[#0a0a0b]/80 backdrop-blur-md px-4 py-3 sm:px-6">
-			<Sidebar.Trigger class="h-9 w-9 rounded-md hover:bg-zinc-800 transition-colors" />
+		<!-- Sticky header — single consolidated breadcrumb bar. Height is
+		     pinned to match the sidebar's own header exactly (60px) so the
+		     two border-bottom lines land on the same row. The sidebar
+		     trigger lives inside the sidebar itself now (desktop always has
+		     at least the icon rail visible to reach it) — this mobile-only
+		     one is still needed here since the mobile sidebar is a fully
+		     hidden off-canvas sheet with no other way to open it. -->
+		<header class="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-800 bg-[#0a0a0b]/80 backdrop-blur-md px-4 h-[60px] sm:px-6">
+			<Sidebar.Trigger class="h-9 w-9 rounded-md hover:bg-zinc-800 transition-colors md:hidden" />
 
 			<nav class="flex items-center flex-wrap gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
 
@@ -156,7 +174,7 @@
 				</div>
 
 				<!-- Rest of the breadcrumb: active project name, then the current
-				     page segment (App / Auth / Users / Logs / Settings) if any.
+				     page segment (Users / Auth / API / Logs / Settings) if any.
 				     Driven entirely by the URL via $page, not client-only state. -->
 				{#each crumbs as crumb, i}
 					<ChevronRight class="h-3.5 w-3.5 text-zinc-700 shrink-0" aria-hidden="true" />

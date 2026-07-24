@@ -1,5 +1,6 @@
 <script>
 	import { signup } from "$lib/services/auth";
+	import { goto } from "$app/navigation";
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 
@@ -42,7 +43,7 @@
 			return;
 		}
 
-		window.location.href = "/dashboard";
+		await goto("/dashboard");
 	}
 </script>
 

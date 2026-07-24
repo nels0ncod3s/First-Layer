@@ -1,4 +1,5 @@
 <script>
+	import { preloadData } from "$app/navigation";
 	import { dashboard } from "$lib/stores/dashboard.svelte.js";
 
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
@@ -113,7 +114,12 @@
 		<ul class="grid gap-5 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
 			{#each filteredProjects as project (project.id)}
 				<li class="group relative rounded-2xl border border-zinc-800 bg-zinc-900/40 p-7 min-h-[168px] flex flex-col justify-between hover:border-zinc-700 hover:bg-zinc-900/60 transition-colors">
-					<a href={`/dashboard/${project.id}`} class="flex items-start gap-4 w-full text-left pr-8">
+					<a
+						href={`/dashboard/${project.id}`}
+						onmouseenter={() => preloadData(`/dashboard/${project.id}`)}
+						onfocus={() => preloadData(`/dashboard/${project.id}`)}
+						class="flex items-start gap-4 w-full text-left pr-8"
+					>
 						<div class="h-14 w-14 shrink-0 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
 							<FolderKanban class="h-7 w-7 text-violet-400" />
 						</div>

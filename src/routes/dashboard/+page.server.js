@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
 
 // No load() here anymore — the project list comes from dashboard/+layout.server.js
 // now, since the header switcher (which lives in the layout) needs it on
@@ -19,8 +20,6 @@ export const actions = {
 			return fail(400, { field: 'name', message: 'Project name is required.' });
 		}
 
-		// Generated once per project so the App integration page has a real
-		// secret to display immediately — nothing else in the app sets this.
 		const clientSecret = `fl_secret_${crypto.randomUUID().replace(/-/g, '')}`;
 
 		const { data: project, error } = await locals.supabase
@@ -48,8 +47,8 @@ export const actions = {
 
 	// Deletes a project. The confirm-by-typing-the-name check is re-verified
 	// here server-side, not just trusted from the client.
-	delete: async ({ request, locals }) => {
-		const { user } = await locals.safeGetSession();
+	delete: async ({ request, locals, fetch }) => {
+		const { user, session } = await locals.safeGetSession();
 		if (!user) return fail(401, { message: 'You must be logged in.' });
 
 		const formData = await request.formData();
@@ -60,6 +59,24 @@ export const actions = {
 		if (!id) return fail(400, { message: 'Missing project id.' });
 		if (confirmName !== projectName) {
 			return fail(400, { message: "Confirmation text doesn't match the project name." });
+		}
+
+		// Clean up dependent rows (api_keys, project_users) via the backend's
+		// service-role client first — this app's own Supabase client only has
+		// RLS-scoped access to Projects, never those two tables, so it can't
+		// do this itself. Best-effort: if the backend call fails, still go
+		// ahead with the actual project delete below rather than blocking
+		// the primary action on a cleanup step.
+		try {
+			const cleanupRes = await fetch(`${API_URL}/api/projects/${id}`, {
+				method: 'DELETE',
+				headers: { Authorization: `Bearer ${session.access_token}` }
+			});
+			if (!cleanupRes.ok) {
+				console.error('Error cleaning up project dependents:', cleanupRes.status, await cleanupRes.text());
+			}
+		} catch (err) {
+			console.error('Error reaching backend to clean up project dependents:', err.message);
 		}
 
 		const { data: deletedRows, error } = await locals.supabase

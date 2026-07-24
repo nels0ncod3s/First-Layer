@@ -135,7 +135,7 @@
 		left: 0;
 		right: 0;
 		height: 480px;
-		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(99, 102, 241, 0.24), transparent 70%);
+		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(124, 58, 237, 0.24), transparent 70%);
 		pointer-events: none;
 		z-index: 0;
 	}
@@ -154,13 +154,13 @@
 		border: 1px solid transparent;
 	}
 	.btn-solid {
-		background: #6366f1;
+		background: #7c3aed;
 		color: #fff;
 	}
 	.btn-solid:hover {
 		transform: translateY(-1px);
-		background: #7476f5;
-		box-shadow: 0 0 24px rgba(99, 102, 241, 0.45);
+		background: #8b5cf6;
+		box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
 	}
 	.btn-outline {
 		border-color: rgba(255, 255, 255, 0.16);
@@ -184,10 +184,10 @@
 	.badge {
 		display: inline-block;
 		padding: 0.4rem 0.95rem;
-		border: 1px solid rgba(99, 102, 241, 0.35);
-		background: rgba(99, 102, 241, 0.1);
+		border: 1px solid rgba(124, 58, 237, 0.35);
+		background: rgba(124, 58, 237, 0.1);
 		border-radius: 999px;
-		color: #a5b4fc;
+		color: #c4b5fd;
 		font-size: 0.82rem;
 		margin-bottom: 1.5rem;
 	}
@@ -198,7 +198,7 @@
 		letter-spacing: -0.02em;
 	}
 	.grad {
-		background: linear-gradient(120deg, #fff, #9ca3ff 60%, #818cf8);
+		background: linear-gradient(120deg, #fff, #c4b5fd 60%, #a78bfa);
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
@@ -227,14 +227,14 @@
 		flex-direction: column;
 	}
 	.tier-card.featured {
-		border-color: #6366f1;
-		box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+		border-color: #7c3aed;
+		box-shadow: 0 0 40px rgba(124, 58, 237, 0.15);
 	}
 	.tier-tag {
 		position: absolute;
 		top: -0.7rem;
 		right: 1.5rem;
-		background: #6366f1;
+		background: #7c3aed;
 		color: #fff;
 		font-size: 0.72rem;
 		font-weight: 600;

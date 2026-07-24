@@ -9,18 +9,15 @@ export const actions = {
 
 		const formData = await request.formData();
 
-		// Checkbox elements return "on" if checked, null if empty
+		// Google OAuth and Magic Links aren't implemented anywhere in the
+		// backend yet (auth_google/auth_magic_link are disabled, "coming
+		// soon" toggles in the UI) — only persist the one provider that's
+		// actually real, so this save can't silently stomp those columns.
 		const authEmail = formData.get('authEmail') === 'on';
-		const authGoogle = formData.get('authGoogle') === 'on';
-		const authMagicLink = formData.get('authMagicLink') === 'on';
 
 		const { error } = await locals.supabase
 			.from('Projects')
-			.update({
-				auth_email: authEmail,
-				auth_google: authGoogle,
-				auth_magic_link: authMagicLink
-			})
+			.update({ auth_email: authEmail })
 			.eq('id', params.project) // project id now comes from the URL
 			.eq('user_id', user.id);
 

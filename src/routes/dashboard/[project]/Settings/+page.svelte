@@ -1,54 +1,114 @@
 <script>
-    let appName = $state('My Core App');
-    let environment = $state('development');
+	import { enhance } from '$app/forms';
+	import { toast } from 'svelte-sonner';
+	import { dashboard } from '$lib/stores/dashboard.svelte.js';
+
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
+
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+
+	let { data, form } = $props();
+
+	let name = $state(data.project.name);
+	let isSaving = $state(false);
+
+	// Keep the field in sync if the project data refreshes underneath us
+	// (e.g. after a successful rename triggers invalidateAll()).
+	$effect(() => {
+		name = data.project.name;
+	});
+
+	function submitRename() {
+		isSaving = true;
+		return async ({ result, update }) => {
+			isSaving = false;
+			if (result.type === 'success' && result.data?.name) {
+				toast.success('Project renamed');
+				// The header switcher's project list lives in this store and
+				// isn't refreshed by invalidateAll() unless the grid page is
+				// mounted — patch it directly so it doesn't show a stale name.
+				dashboard.projects = dashboard.projects.map((p) =>
+					p.id === result.data.id ? { ...p, name: result.data.name } : p
+				);
+			} else if (result.type === 'failure') {
+				toast.error(result.data?.error || 'Could not rename project.');
+			}
+			await update({ reset: false });
+		};
+	}
+
+	function formatDate(iso) {
+		if (!iso) return '—';
+		return new Date(iso).toLocaleDateString(undefined, {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric'
+		});
+	}
 </script>
 
 <div class="space-y-6 max-w-2xl">
-    <!-- Header -->
-    <div>
-        <h1 class="text-2xl font-bold tracking-tight text-zinc-100">Global Settings</h1>
-        <p class="text-sm text-zinc-400">Configure default settings and custom naming details.</p>
-    </div>
+	<!-- Header -->
+	<div>
+		<h1 class="text-2xl font-bold tracking-tight text-zinc-100">Project Settings</h1>
+		<p class="text-sm text-zinc-400">Manage this project's details, or remove it entirely.</p>
+	</div>
 
-    <!-- Settings Card -->
-    <div class="rounded-xl border border-zinc-800 bg-[#0c0c0e] p-6 shadow-sm">
-        <form onsubmit={(e) => e.preventDefault()} class="space-y-5">
-            <!-- App Name Field -->
-            <div class="space-y-2">
-                <label for="appName" class="text-sm font-medium text-zinc-300">Application Name</label>
-                <input 
-                    type="text" 
-                    id="appName" 
-                    bind:value={appName} 
-                    class="block w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                />
-            </div>
+	<!-- Project details -->
+	<div class="rounded-xl border border-zinc-800 bg-[#0c0c0e] p-6 shadow-sm space-y-5">
+		<form method="POST" action="?/rename" use:enhance={submitRename} class="space-y-2">
+			<Label for="project-name" class="text-sm font-medium text-zinc-300">Project name</Label>
+			<div class="flex gap-2">
+				<Input
+					id="project-name"
+					name="name"
+					bind:value={name}
+					required
+					class="bg-zinc-950 border-zinc-800 text-zinc-100 focus-visible:ring-violet-500"
+				/>
+				<Button
+					type="submit"
+					disabled={isSaving || !name.trim() || name.trim() === data.project.name}
+					class="bg-violet-600 hover:bg-violet-500 text-white shrink-0"
+				>
+					{isSaving ? 'Saving...' : 'Save'}
+				</Button>
+			</div>
+		</form>
 
-            <!-- Environment Select Field -->
-            <div class="space-y-2">
-                <label for="env" class="text-sm font-medium text-zinc-300">Primary Environment</label>
-                <div class="relative">
-                    <select 
-                        id="env" 
-                        bind:value={environment} 
-                        class="block w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 appearance-none"
-                    >
-                        <option value="development">Development</option>
-                        <option value="staging">Staging</option>
-                        <option value="production">Production</option>
-                    </select>
-                </div>
-            </div>
+		<div class="grid grid-cols-2 gap-4 pt-3 border-t border-zinc-800/60 text-sm">
+			<div>
+				<p class="text-xs uppercase tracking-wide text-zinc-500 mb-1">Project ID</p>
+				<p class="font-mono text-zinc-300 truncate" title={data.project.id}>{data.project.id}</p>
+			</div>
+			<div>
+				<p class="text-xs uppercase tracking-wide text-zinc-500 mb-1">Created</p>
+				<p class="text-zinc-300">{formatDate(data.project.created_at)}</p>
+			</div>
+			{#if data.project.framework}
+				<div>
+					<p class="text-xs uppercase tracking-wide text-zinc-500 mb-1">Framework</p>
+					<p class="text-zinc-300 capitalize">{data.project.framework}</p>
+				</div>
+			{/if}
+		</div>
+	</div>
 
-            <!-- Submit button -->
-            <div class="pt-2">
-                <button 
-                    type="submit" 
-                    class="rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 transition-colors"
-                >
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
+	<!-- Danger zone -->
+	<div class="rounded-xl border border-red-500/20 bg-red-500/[0.03] p-6 shadow-sm">
+		<h2 class="text-sm font-semibold text-red-400 mb-1">Danger zone</h2>
+		<p class="text-xs text-zinc-500 mb-4">
+			Deleting a project is permanent and can't be undone.
+		</p>
+		<Button
+			variant="outline"
+			class="gap-2 border-red-500/30 bg-transparent text-red-400 hover:bg-red-500/10 hover:text-red-300"
+			onclick={() => dashboard.requestDelete(data.project)}
+		>
+			<Trash2 class="h-4 w-4" />
+			Delete project
+		</Button>
+	</div>
 </div>

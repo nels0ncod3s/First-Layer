@@ -24,7 +24,12 @@
 			return;
 		}
 
-		window.location.href = "/dashboard";
+		// goto() instead of a hard reload — the session cookie is already
+		// set by supabase-ssr's browser client at this point, so the
+		// dashboard's server load can see it on a normal client-side nav.
+		// A hard reload re-downloads and re-parses the entire app for no
+		// reason.
+		await goto("/dashboard");
 	}
 </script>
 

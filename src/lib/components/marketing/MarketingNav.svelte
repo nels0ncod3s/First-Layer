@@ -63,13 +63,13 @@
 		color: #fff;
 	}
 	.btn-solid {
-		background: #6366f1;
+		background: #7c3aed;
 		color: #fff;
 	}
 	.btn-solid:hover {
 		transform: translateY(-1px);
 		background: #7476f5;
-		box-shadow: 0 0 24px rgba(99, 102, 241, 0.45);
+		box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
 	}
 
 	.nav {
@@ -98,7 +98,7 @@
 		justify-self: start;
 	}
 	.brand-mark {
-		color: #818cf8;
+		color: #a78bfa;
 		font-size: 1.2rem;
 	}
 	.nav-links {

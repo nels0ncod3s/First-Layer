@@ -102,7 +102,7 @@
 		left: 0;
 		right: 0;
 		height: 480px;
-		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(99, 102, 241, 0.24), transparent 70%);
+		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(124, 58, 237, 0.24), transparent 70%);
 		pointer-events: none;
 		z-index: 0;
 	}
@@ -116,10 +116,10 @@
 	.badge {
 		display: inline-block;
 		padding: 0.4rem 0.95rem;
-		border: 1px solid rgba(99, 102, 241, 0.35);
-		background: rgba(99, 102, 241, 0.1);
+		border: 1px solid rgba(124, 58, 237, 0.35);
+		background: rgba(124, 58, 237, 0.1);
 		border-radius: 999px;
-		color: #a5b4fc;
+		color: #c4b5fd;
 		font-size: 0.82rem;
 		margin-bottom: 1.5rem;
 	}
@@ -130,7 +130,7 @@
 		letter-spacing: -0.02em;
 	}
 	.grad {
-		background: linear-gradient(120deg, #fff, #9ca3ff 60%, #818cf8);
+		background: linear-gradient(120deg, #fff, #c4b5fd 60%, #a78bfa);
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
@@ -160,8 +160,8 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
-		background: #6366f1;
-		box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+		background: #7c3aed;
+		box-shadow: 0 0 10px rgba(124, 58, 237, 0.6);
 		margin-top: 0.4rem;
 		flex-shrink: 0;
 	}
@@ -201,8 +201,8 @@
 		letter-spacing: 0.02em;
 	}
 	.tag-new {
-		background: rgba(99, 102, 241, 0.15);
-		color: #a5b4fc;
+		background: rgba(124, 58, 237, 0.15);
+		color: #c4b5fd;
 	}
 	.tag-improved {
 		background: rgba(34, 211, 238, 0.12);

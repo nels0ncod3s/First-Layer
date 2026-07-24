@@ -127,3 +127,18 @@
 		@apply font-sans;
 	}
 }
+
+/* Hide the scrollbar on mobile viewports only — desktop keeps its
+   normal scrollbar. Scrolling itself is untouched, just the visible
+   track/thumb. */
+@media (max-width: 767px) {
+	html,
+	body {
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+	html::-webkit-scrollbar,
+	body::-webkit-scrollbar {
+		display: none;
+	}
+}
