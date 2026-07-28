@@ -3,7 +3,7 @@
 	import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
 	import { highlightCode } from "$lib/highlight.js";
 
-	const quickstartCurl = `curl -X POST http://localhost:4000/v1/auth/signup \\
+	const quickstartCurl = `curl -X POST https://firstlayer-backend.pxxl.run/v1/auth/signup \\
   -H "x-api-key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"email":"ada@example.com","password":"correct horse battery staple"}'`;
@@ -25,7 +25,7 @@
 	];
 	let activeFramework = $state("js");
 
-	const jsCode = `const API_URL = "http://localhost:4000"; // your backend's URL
+	const jsCode = `const API_URL = "https://firstlayer-backend.pxxl.run";
 const API_KEY = "YOUR_API_KEY";          // Dashboard -> your project -> API
 
 async function firstLayer(path, options) {
@@ -53,7 +53,7 @@ const { user } = await firstLayer("/v1/auth/signup", {
 const { users } = await firstLayer("/v1/users");`;
 
 	const svelteCode = `<script>
-  const API_URL = "http://localhost:4000";
+  const API_URL = "https://firstlayer-backend.pxxl.run";
   const API_KEY = "YOUR_API_KEY";
 
   let users = $state([]);
@@ -83,7 +83,7 @@ const { users } = await firstLayer("/v1/users");`;
 
 	const reactCode = `import { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://firstlayer-backend.pxxl.run";
 const API_KEY = "YOUR_API_KEY";
 
 export default function App() {
@@ -121,72 +121,79 @@ export default function App() {
 	let activeFile = $derived(frameworks.find((f) => f.id === activeFramework)?.file ?? "");
 
 	// --- CRUD endpoint reference ---------------------------------------------
-	const endpoints = [
+	// `view` is per-endpoint state (request/response tab) — the array is
+	// $state so mutating ep.view in the click handler below just works.
+	let endpoints = $state([
 		{
 			method: "POST",
 			path: "/v1/auth/signup",
 			title: "Create a user",
 			description: "Registers a new end-user under your project. Emails are unique per project.",
-			curl: `curl -X POST http://localhost:4000/v1/auth/signup \\
+			curl: `curl -X POST https://firstlayer-backend.pxxl.run/v1/auth/signup \\
   -H "x-api-key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"email":"ada@example.com","password":"correct horse battery staple"}'`,
 			response: `{
   "message": "User created successfully",
   "user": { "id": "…", "email": "ada@example.com", "created_at": "…" }
-}`
+}`,
+			view: "request"
 		},
 		{
 			method: "GET",
 			path: "/v1/users",
 			title: "List users",
 			description: "Returns every end-user that belongs to your project.",
-			curl: `curl http://localhost:4000/v1/users \\
+			curl: `curl https://firstlayer-backend.pxxl.run/v1/users \\
   -H "x-api-key: YOUR_API_KEY"`,
 			response: `{
   "users": [
     { "id": "…", "email": "ada@example.com", "created_at": "…" }
   ]
-}`
+}`,
+			view: "request"
 		},
 		{
 			method: "GET",
 			path: "/v1/users/:id",
 			title: "Get a user",
 			description: "Returns a single end-user by id, scoped to your project.",
-			curl: `curl http://localhost:4000/v1/users/USER_ID \\
+			curl: `curl https://firstlayer-backend.pxxl.run/v1/users/USER_ID \\
   -H "x-api-key: YOUR_API_KEY"`,
 			response: `{
   "user": { "id": "…", "email": "ada@example.com", "created_at": "…" }
-}`
+}`,
+			view: "request"
 		},
 		{
 			method: "PATCH",
 			path: "/v1/users/:id",
 			title: "Update a user",
 			description: "Updates email and/or password. Send only the fields you want to change.",
-			curl: `curl -X PATCH http://localhost:4000/v1/users/USER_ID \\
+			curl: `curl -X PATCH https://firstlayer-backend.pxxl.run/v1/users/USER_ID \\
   -H "x-api-key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"email":"ada.new@example.com"}'`,
 			response: `{
   "message": "User updated successfully",
   "user": { "id": "…", "email": "ada.new@example.com", "created_at": "…" }
-}`
+}`,
+			view: "request"
 		},
 		{
 			method: "DELETE",
 			path: "/v1/users/:id",
 			title: "Delete a user",
 			description: "Permanently deletes an end-user from your project.",
-			curl: `curl -X DELETE http://localhost:4000/v1/users/USER_ID \\
+			curl: `curl -X DELETE https://firstlayer-backend.pxxl.run/v1/users/USER_ID \\
   -H "x-api-key: YOUR_API_KEY"`,
 			response: `{
   "message": "User deleted successfully",
   "id": "…"
-}`
+}`,
+			view: "request"
 		}
-	];
+	]);
 
 	function methodClass(method) {
 		return "method method-" + method.toLowerCase();
@@ -231,7 +238,7 @@ export default function App() {
 					</div>
 					<pre class="code-body"><code>{@html highlightCode(quickstartCurl)}</code></pre>
 				</div>
-				<p>Swap <code>http://localhost:4000</code> for wherever you deploy <code>firstlayer-backend</code>, and <code>YOUR_API_KEY</code> for the key you just copied.</p>
+				<p>Swap <code>YOUR_API_KEY</code> for the key you just copied — that's the only thing you need to change. There's no backend to deploy or configure; every request goes straight to First Layer.</p>
 			</section>
 
 			<section id="installation">
@@ -274,16 +281,21 @@ export default function App() {
 						<p>{ep.description}</p>
 
 						<div class="code-window">
-							<div class="flat-header">
-								<span class="flat-filename">request</span>
+							<div class="flat-header endpoint-view-tabs">
+								<button
+									type="button"
+									class="view-tab"
+									class:active={ep.view === "request"}
+									onclick={() => (ep.view = "request")}
+								>Request</button>
+								<button
+									type="button"
+									class="view-tab"
+									class:active={ep.view === "response"}
+									onclick={() => (ep.view = "response")}
+								>Response</button>
 							</div>
-							<pre class="code-body"><code>{@html highlightCode(ep.curl)}</code></pre>
-						</div>
-						<div class="code-window">
-							<div class="flat-header">
-								<span class="flat-filename">response</span>
-							</div>
-							<pre class="code-body"><code>{@html highlightCode(ep.response)}</code></pre>
+							<pre class="code-body"><code>{@html highlightCode(ep.view === "request" ? ep.curl : ep.response)}</code></pre>
 						</div>
 					</div>
 				{/each}
@@ -291,7 +303,7 @@ export default function App() {
 
 			<section id="api-reference">
 				<h2>API reference</h2>
-				<p>All endpoints live under your backend's base URL (e.g. <code>http://localhost:4000</code> locally).</p>
+				<p>All endpoints live under <code>https://firstlayer-backend.pxxl.run</code> — the same URL for every project, every environment. Only your API key changes.</p>
 				<div class="ref-table-wrap">
 					<table class="ref-table">
 						<thead>
@@ -385,9 +397,19 @@ export default function App() {
 		margin: 0 auto;
 		padding: 4rem 1.5rem 5rem;
 		display: grid;
-		grid-template-columns: 200px 1fr;
+		/* minmax(0, 1fr), not plain 1fr — otherwise this grid item refuses
+		   to shrink below its content's intrinsic width (the code blocks,
+		   via white-space: pre) and grows past its track. .page's
+		   overflow-x: clip then silently cuts off that overflow instead of
+		   the code block's own overflow-x: auto ever getting a chance to
+		   handle it — on mobile that made part of every code sample
+		   permanently unreachable, not just hard to notice. */
+		grid-template-columns: 200px minmax(0, 1fr);
 		gap: 3.5rem;
 		align-items: start;
+	}
+	.docs-content {
+		min-width: 0;
 	}
 	.docs-nav {
 		position: sticky;
@@ -475,6 +497,29 @@ export default function App() {
 		font-size: 0.78rem;
 		color: #71717a;
 	}
+	.endpoint-view-tabs {
+		display: flex;
+		gap: 0.35rem;
+		padding: 0.5rem 0.75rem;
+	}
+	.view-tab {
+		background: none;
+		border: none;
+		color: #71717a;
+		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-size: 0.74rem;
+		padding: 0.3rem 0.65rem;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease;
+	}
+	.view-tab:hover {
+		color: #d4d4d8;
+	}
+	.view-tab.active {
+		background: rgba(124, 58, 237, 0.16);
+		color: #c4b5fd;
+	}
 	.code-body {
 		margin: 0;
 		padding: 1.25rem 1.5rem;
@@ -484,6 +529,29 @@ export default function App() {
 		color: #d4d4d8;
 		overflow-x: auto;
 		white-space: pre;
+		-webkit-overflow-scrolling: touch;
+		/* Scroll-shadow affordance: solid-color masks (local attachment,
+		   scroll with content) sit over shadow gradients (fixed attachment)
+		   at each edge. At rest, a mask fully covers its shadow on the side
+		   with nothing left to scroll; once you scroll past it, the mask
+		   moves away and the shadow becomes visible — a clear "there's more
+		   this way" signal without needing JS, and without needing to zoom. */
+		background-image:
+			linear-gradient(to right, #12121a, #12121a),
+			linear-gradient(to right, #12121a, #12121a),
+			linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)),
+			linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+		background-position: left center, right center, left center, right center;
+		background-repeat: no-repeat;
+		background-color: #12121a;
+		background-size: 24px 100%, 24px 100%, 12px 100%, 12px 100%;
+		background-attachment: local, local, scroll, scroll;
+	}
+	@media (max-width: 640px) {
+		.code-body {
+			font-size: 0.76rem;
+			padding: 1rem 1.1rem;
+		}
 	}
 	.code-body :global(.tok-keyword) {
 		color: #569cd6;
@@ -619,7 +687,7 @@ export default function App() {
 
 	@media (max-width: 860px) {
 		.docs-layout {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
 			gap: 2rem;
 		}
 		.docs-nav {

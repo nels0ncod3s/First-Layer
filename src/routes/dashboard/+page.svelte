@@ -37,6 +37,15 @@
 		dashboard.setProjects(data.projects);
 	});
 
+	function formatDate(iso) {
+		if (!iso) return "—";
+		return new Date(iso).toLocaleDateString(undefined, {
+			year: "numeric",
+			month: "short",
+			day: "numeric"
+		});
+	}
+
 	// --- Search ---------------------------------------------------------------
 	let searchQuery = $state("");
 	let filteredProjects = $derived(
@@ -110,59 +119,126 @@
 			</Button>
 		</div>
 	{:else}
-		<!-- "My Projects" card grid -->
+		<!-- "My Projects" card grid — each card is one connected folder
+		     silhouette (clip-path, not a separate floating tab piece), with
+		     a lighter "inside" panel behind it that becomes visible as the
+		     front cover recedes slightly on hover — closed at rest, open
+		     on hover. -->
 		<ul class="grid gap-5 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
 			{#each filteredProjects as project (project.id)}
-				<li class="group relative rounded-2xl border border-zinc-800 bg-zinc-900/40 p-7 min-h-[168px] flex flex-col justify-between hover:border-zinc-700 hover:bg-zinc-900/60 transition-colors">
-					<a
-						href={`/dashboard/${project.id}`}
-						onmouseenter={() => preloadData(`/dashboard/${project.id}`)}
-						onfocus={() => preloadData(`/dashboard/${project.id}`)}
-						class="flex items-start gap-4 w-full text-left pr-8"
-					>
-						<div class="h-14 w-14 shrink-0 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-							<FolderKanban class="h-7 w-7 text-violet-400" />
-						</div>
-						<div class="min-w-0 pt-1">
-							<p class="font-semibold text-lg text-zinc-100 truncate">{project.name}</p>
-							<p class="text-sm text-zinc-500 mt-1">Tap to open workspace</p>
-						</div>
-					</a>
+				<li class="group relative min-h-[168px] overflow-hidden rounded-[14px]">
+					<div class="folder-body" aria-hidden="true"></div>
+					<svg class="folder-corner" viewBox="1 2 13 9" aria-hidden="true">
+						<path
+							d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
+						/>
+					</svg>
 
-					<DropdownMenu.Root>
-						<DropdownMenu.Trigger>
-							{#snippet child({ props })}
-								<Button
-									{...props}
-									variant="ghost"
-									size="icon"
-									class="absolute top-5 right-5 h-8 w-8 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800"
-									aria-label="Project options"
+					<div class="relative z-10 px-6 pb-6 pt-9 min-h-[168px] flex flex-col justify-between">
+						<a
+							href={`/dashboard/${project.id}`}
+							onmouseenter={() => preloadData(`/dashboard/${project.id}`)}
+							onfocus={() => preloadData(`/dashboard/${project.id}`)}
+							class="flex items-start gap-4 w-full text-left pr-8"
+						>
+							<div class="h-12 w-12 shrink-0 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+								<FolderKanban class="h-6 w-6 text-violet-400" />
+							</div>
+							<div class="min-w-0 pt-1">
+								<p class="font-semibold text-lg text-zinc-100 truncate">{project.name}</p>
+								<p class="text-sm text-zinc-500 mt-1">Tap to open workspace</p>
+							</div>
+						</a>
+
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="ghost"
+										size="icon"
+										class="absolute top-4 right-4 h-8 w-8 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800"
+										aria-label="Project options"
+									>
+										<EllipsisVertical class="h-4 w-4" />
+									</Button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end" class="bg-zinc-900 border-zinc-800 text-zinc-100">
+								<DropdownMenu.Item
+									class="gap-2 focus:bg-zinc-800 focus:text-zinc-100"
+									onclick={() => dashboard.openProjectSettings(project)}
 								>
-									<EllipsisVertical class="h-4 w-4" />
-								</Button>
-							{/snippet}
-						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="end" class="bg-zinc-900 border-zinc-800 text-zinc-100">
-							<DropdownMenu.Item
-								class="gap-2 focus:bg-zinc-800 focus:text-zinc-100"
-								onclick={() => dashboard.openProjectSettings(project)}
-							>
-								<Settings class="h-4 w-4" />
-								Project settings
-							</DropdownMenu.Item>
-							<DropdownMenu.Separator class="bg-zinc-800" />
-							<DropdownMenu.Item
-								class="gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-400"
-								onclick={() => dashboard.requestDelete(project)}
-							>
-								<Trash2 class="h-4 w-4" />
-								Delete project
-							</DropdownMenu.Item>
-						</DropdownMenu.Content>
-					</DropdownMenu.Root>
+									<Settings class="h-4 w-4" />
+									Project settings
+								</DropdownMenu.Item>
+								<DropdownMenu.Separator class="bg-zinc-800" />
+								<DropdownMenu.Item
+									class="gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-400"
+									onclick={() => dashboard.requestDelete(project)}
+								>
+									<Trash2 class="h-4 w-4" />
+									Delete project
+								</DropdownMenu.Item>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+
+						<p class="text-xs text-zinc-500">
+							{formatDate(project.created_at)}
+							{#await data.counts}
+								<span class="text-zinc-600">· loading…</span>
+							{:then counts}
+								{@const stats = counts[project.id] ?? { keyCount: 0, userCount: 0 }}
+								· {stats.keyCount}
+								{stats.keyCount === 1 ? "key" : "keys"} · {stats.userCount}
+								{stats.userCount === 1 ? "user" : "users"}
+							{/await}
+						</p>
+					</div>
 				</li>
 			{/each}
 		</ul>
 	{/if}
 </div>
+
+<style>
+	/* Folder card, built from two pieces instead of one stretched shape —
+	   stretching the whole icon path with preserveAspectRatio="none" across
+	   a ~2:1 card warped the curves and corners non-uniformly (icon is
+	   natively ~1.16:1). Splitting it avoids that entirely:
+	   - .folder-corner draws only the tab + notch, cropped tightly out of
+	     Lucide's own "folder" path and rendered at its true, undistorted
+	     aspect ratio (uniform px-per-unit on both axes) — never stretched.
+	   - .folder-body is a plain div using normal border-radius for the
+	     other three corners, which CSS always renders perfectly circular
+	     regardless of the card's actual width. Its top-left corner is
+	     square and sits underneath .folder-corner, which supplies the real
+	     (rounded) top-left corner instead.
+	   Both pieces share the exact same fill/border so the seam where they
+	   meet is invisible. Static — no hover state. */
+	.folder-corner {
+		position: absolute;
+		top: -7.5px;
+		left: -7.5px;
+		width: 97.5px;
+		height: 67.5px;
+		overflow: hidden;
+		z-index: 1;
+	}
+	.folder-corner path {
+		fill: #17171a;
+		stroke: #27272a;
+		stroke-width: 1;
+		vector-effect: non-scaling-stroke;
+	}
+	.folder-body {
+		position: absolute;
+		top: 22.5px;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		border-radius: 0 14px 14px 14px;
+		background: #17171a;
+		border: 1px solid #27272a;
+	}
+</style>

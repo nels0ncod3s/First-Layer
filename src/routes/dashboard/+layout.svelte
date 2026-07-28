@@ -1,5 +1,5 @@
 <script>
-	import { page } from "$app/stores";
+	import { page, navigating } from "$app/stores";
 	import { goto, preloadData } from "$app/navigation";
 	import { enhance } from "$app/forms";
 	import { toast } from "svelte-sonner";
@@ -30,6 +30,15 @@
 	// hard refresh, before the grid page has ever run in this session.
 	let activeProject = $derived($page.data.project ?? null);
 
+	// Guards the delete-project button against a double-submit — without
+	// it, a second click while the first request is still in flight (more
+	// likely now that delete also does a backend cleanup round trip first)
+	// sends a second delete for a row the first request already removed,
+	// which comes back as a real "0 rows matched" failure and shows an
+	// error toast even though the project was in fact deleted.
+	let isDeleting = $state(false);
+	let isCreating = $state(false);
+
 	let routeSegments = $derived($page.route.id?.split("/").filter(Boolean) ?? []);
 	let pageSegment = $derived(routeSegments.at(-1) === "[project]" ? null : routeSegments.at(-1));
 
@@ -40,7 +49,9 @@
 
 	/** Submits the "Create project" form to the `create` action. */
 	function submitCreate() {
+		isCreating = true;
 		return async ({ result, update }) => {
+			isCreating = false;
 			if (result.type === "success" && result.data?.project) {
 				toast.success(`"${result.data.project.name}" created`);
 				dashboard.addProject(result.data.project);
@@ -56,7 +67,9 @@
 
 	/** Submits the "Delete project" confirmation form to the `delete` action. */
 	function submitDelete() {
+		isDeleting = true;
 		return async ({ result, update }) => {
+			isDeleting = false;
 			if (result.type === "success" && result.data?.deletedId) {
 				// If the project being deleted is the one currently open,
 				// navigate back to the grid — its route would otherwise 404.
@@ -86,6 +99,16 @@
 </script>
 
 <svelte:window onclick={handleWindowClick} />
+
+<!-- Instant feedback the moment ANY dashboard navigation starts (a click,
+     not just form submits) — SvelteKit's `navigating` store is truthy for
+     the whole time a destination's load functions are running, which for
+     project sub-pages now means real network calls to the deployed
+     backend instead of localhost. Without this, that wait reads as "did
+     my click even register?" rather than "it's working." -->
+{#if $navigating}
+	<div class="nav-progress" aria-hidden="true"></div>
+{/if}
 
 <Sidebar.Provider>
 	<AppSidebar userName={data.user.name} userEmail={data.user.email} avatarUrl={data.user.avatarUrl} />
@@ -259,8 +282,12 @@
 				>
 					Cancel
 				</Button>
-				<Button type="submit" class="bg-violet-600 hover:bg-violet-500 text-white">
-					Create project
+				<Button
+					type="submit"
+					disabled={isCreating}
+					class="bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-60 disabled:pointer-events-none"
+				>
+					{isCreating ? "Creating..." : "Create project"}
 				</Button>
 			</Dialog.Footer>
 		</form>
@@ -310,12 +337,41 @@
 				</Button>
 				<Button
 					type="submit"
-					disabled={!dashboard.canDelete}
+					disabled={!dashboard.canDelete || isDeleting}
 					class="bg-red-600 hover:bg-red-500 text-white disabled:opacity-40 disabled:pointer-events-none"
 				>
-					Delete
+					{isDeleting ? "Deleting..." : "Delete"}
 				</Button>
 			</Dialog.Footer>
 		</form>
 	</Dialog.Content>
 </Dialog.Root>
+
+<style>
+	.nav-progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
+		background-size: 200% 100%;
+		animation: nav-progress-slide 1s ease-in-out infinite;
+		z-index: 50;
+		pointer-events: none;
+	}
+	@keyframes nav-progress-slide {
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.nav-progress {
+			animation: none;
+			opacity: 0.6;
+		}
+	}
+</style>

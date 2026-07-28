@@ -12,9 +12,6 @@
   import Zap from "@lucide/svelte/icons/zap";
   import Puzzle from "@lucide/svelte/icons/puzzle";
   import Terminal from "@lucide/svelte/icons/terminal";
-  import JavaScriptIcon from "$lib/Icons/javascript.svelte";
-  import SvelteIcon from "$lib/Icons/svelte.svelte";
-  import ReactIcon from "$lib/Icons/react.svelte";
 
   // --- Framework snippets ---------------------------------------------
   // Real REST calls against the real backend — there's no published
@@ -24,9 +21,8 @@
     {
       id: "js",
       label: "JavaScript",
-      icon: JavaScriptIcon,
       file: "auth.js",
-      code: `const API_URL = "http://localhost:4000"; // your backend's URL
+      code: `const API_URL = "https://firstlayer-backend.pxxl.run";
 const API_KEY = "YOUR_API_KEY";          // Dashboard -> your project -> API
 
 async function signUp(email, password) {
@@ -44,10 +40,9 @@ async function signUp(email, password) {
     {
       id: "svelte",
       label: "Svelte",
-      icon: SvelteIcon,
       file: "+page.svelte",
       code: `<script>
-  const API_URL = "http://localhost:4000";
+  const API_URL = "https://firstlayer-backend.pxxl.run";
   const API_KEY = "YOUR_API_KEY";
 
   let email = $state("");
@@ -66,9 +61,8 @@ async function signUp(email, password) {
     {
       id: "react",
       label: "React",
-      icon: ReactIcon,
       file: "App.jsx",
-      code: `const API_URL = "http://localhost:4000";
+      code: `const API_URL = "https://firstlayer-backend.pxxl.run";
 const API_KEY = "YOUR_API_KEY";
 
 async function signUp(email, password) {
@@ -144,14 +138,6 @@ async function signUp(email, password) {
         observer.disconnect();
       },
     };
-  }
-
-  // --- Email capture ---
-  let email = $state("");
-  let submitted = $state(false);
-  function handleGetKey() {
-    if (!email.includes("@")) return;
-    submitted = true;
   }
 
   const logos = ["Voltra", "Kesho Pay", "Nimbus", "Ledger&Co", "Patchwork", "Orbital"];
@@ -255,13 +241,11 @@ async function signUp(email, password) {
             <button
               role="tab"
               aria-selected={activeId === f.id}
-              aria-label={f.label}
               class="sdk-tab"
               class:active={activeId === f.id}
               onclick={() => (activeId = f.id)}
             >
-              <f.icon class="sdk-tab-icon" />
-              <span class="sdk-tab-tooltip" role="tooltip">{f.label}</span>
+              {f.label}
             </button>
           {/each}
         </div>
@@ -329,21 +313,8 @@ async function signUp(email, password) {
   <section class="final-cta" use:reveal>
     <div class="final-cta-inner">
       <h2>Ready to secure your application?</h2>
-      <p>Get an API key in seconds. No credit card required.</p>
-
-      {#if !submitted}
-        <div class="cta-input-row">
-          <input
-            type="email"
-            placeholder="you@company.com"
-            bind:value={email}
-            onkeydown={(e) => e.key === "Enter" && handleGetKey()}
-          />
-          <button class="btn-solid" onclick={handleGetKey}>Get API key</button>
-        </div>
-      {:else}
-        <p class="cta-success">Check your inbox — your key is on its way.</p>
-      {/if}
+      <p>Create a free account and generate your first API key in minutes. No credit card required.</p>
+      <a class="btn-solid btn-lg" href="/signup">Get started free</a>
     </div>
   </section>
 
@@ -667,7 +638,11 @@ async function signUp(email, password) {
   }
   .sdk-layout {
     display: grid;
-    grid-template-columns: 0.85fr 1.15fr;
+    /* minmax(0, ...) on both tracks — same fix as the docs page: without
+       it these items refuse to shrink below the code block's intrinsic
+       width and .page's overflow-x: clip silently cuts off the excess
+       instead of the code block's own overflow-x: auto handling it. */
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
     gap: 3rem;
     align-items: center;
   }
@@ -694,58 +669,21 @@ async function signUp(email, password) {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
   .sdk-tab {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
     background: none;
     border: none;
+    color: #9ca3af;
+    padding: 0.55rem 0.95rem;
     border-radius: 8px;
+    font-size: 0.88rem;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
   }
-  .sdk-tab-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    opacity: 0.75;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-  }
-  .sdk-tab:hover .sdk-tab-icon,
-  .sdk-tab:focus-visible .sdk-tab-icon {
-    opacity: 1;
-    transform: scale(1.08);
+  .sdk-tab:hover {
+    color: #fff;
   }
   .sdk-tab.active {
     background: rgba(124, 58, 237, 0.16);
-  }
-  .sdk-tab.active .sdk-tab-icon {
-    opacity: 1;
-  }
-  .sdk-tab-tooltip {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    background: #1c1c24;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #e4e4e7;
-    font-size: 0.72rem;
-    font-weight: 500;
-    padding: 0.3rem 0.6rem;
-    border-radius: 6px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-    z-index: 10;
-  }
-  .sdk-tab:hover .sdk-tab-tooltip,
-  .sdk-tab:focus-visible .sdk-tab-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    color: #c4b5fd;
   }
   .code-window {
     display: flex;
@@ -768,6 +706,24 @@ async function signUp(email, password) {
     line-height: 1.7;
     color: #d4d4d8;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Scroll-shadow affordance — see docs page for the full explanation. */
+    background-image:
+      linear-gradient(to right, #12121a, #12121a),
+      linear-gradient(to right, #12121a, #12121a),
+      linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)),
+      linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-color: #12121a;
+    background-size: 24px 100%, 24px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+  @media (max-width: 640px) {
+    .code-body {
+      font-size: 0.78rem;
+      padding: 1.25rem;
+    }
   }
   .code-body :global(.tok-keyword) {
     color: #569cd6;
@@ -791,7 +747,7 @@ async function signUp(email, password) {
 
   @media (max-width: 860px) {
     .sdk-layout {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 2rem;
     }
     .sdk-text p {
@@ -988,11 +944,8 @@ async function signUp(email, password) {
     max-width: 1180px;
     margin-inline: auto;
     border-radius: 24px;
-    background:
-      radial-gradient(circle at 30% 20%, rgba(124, 58, 237, 0.35), transparent 55%),
-      radial-gradient(circle at 80% 80%, rgba(34, 211, 238, 0.18), transparent 50%),
-      #12121a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #14101f;
+    border: 1px solid rgba(139, 92, 246, 0.25);
     padding: 4rem 2rem;
     text-align: center;
   }
@@ -1004,46 +957,12 @@ async function signUp(email, password) {
     color: #9ca3af;
     margin: 0 0 2rem;
   }
-  .cta-input-row {
-    display: flex;
-    justify-content: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-  }
-  .cta-input-row input {
-    background: #08080c;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    color: #f3f4f6;
-    font-size: 0.95rem;
-    min-width: 260px;
-  }
-  .cta-input-row input:focus {
-    outline: 2px solid #7c3aed;
-    outline-offset: 2px;
-  }
-  .cta-success {
-    color: #34d399;
-    font-weight: 600;
-  }
 
   @media (max-width: 640px) {
     .final-cta {
       margin: 0 1rem 3.5rem;
       padding: 2.75rem 1.25rem;
       border-radius: 20px;
-    }
-    .cta-input-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .cta-input-row input {
-      min-width: 0;
-      width: 100%;
-    }
-    .cta-input-row button {
-      width: 100%;
     }
   }
 

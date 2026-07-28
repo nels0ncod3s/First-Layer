@@ -79,7 +79,7 @@
                 <div class="h-7 w-7 rounded-md bg-violet-500/20 border border-violet-400/30 flex items-center justify-center shrink-0">
                     <div class="h-2 w-2 rounded-sm bg-violet-400"></div>
                 </div>
-                <span class="font-semibold tracking-tight text-zinc-100 group-data-[collapsible=icon]:hidden">First Layer</span>
+                <span class="font-semibold tracking-tight text-zinc-100 whitespace-nowrap overflow-hidden max-w-[140px] opacity-100 transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">First Layer</span>
             </button>
             <Sidebar.Trigger class="ml-auto h-7 w-7 rounded-md hover:bg-zinc-800 transition-colors shrink-0 group-data-[collapsible=icon]:hidden" />
         </div>
@@ -94,7 +94,7 @@
                     <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                             isActive={$page.url.pathname === "/dashboard"}
-                            class="h-11 text-base [&_svg]:size-5 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 data-[active=true]:bg-zinc-800 data-[active=true]:text-zinc-100"
+                            class="h-11 text-sm [&_svg]:size-[18px] text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 data-[active=true]:bg-zinc-800 data-[active=true]:text-zinc-100"
                         >
                             {#snippet child({ props })}
                                 <a href="/dashboard" {...props} onclick={handleNavigate}>
@@ -111,7 +111,7 @@
                                 {@const url = `/dashboard/${activeProjectId}/${item.segment}`}
                                 <Sidebar.MenuButton
                                     isActive={$page.url.pathname === url}
-                                    class="h-11 text-base [&_svg]:size-5 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 data-[active=true]:bg-zinc-800 data-[active=true]:text-zinc-100"
+                                    class="h-11 text-sm [&_svg]:size-[18px] text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 data-[active=true]:bg-zinc-800 data-[active=true]:text-zinc-100"
                                 >
                                     {#snippet child({ props })}
                                         <a href={url} {...props} onclick={handleNavigate}>
@@ -124,7 +124,7 @@
                                 <!-- No active project yet: greyed out, prompts project
                                      creation instead of navigating anywhere. -->
                                 <Sidebar.MenuButton
-                                    class="h-11 text-base [&_svg]:size-5 text-zinc-600 cursor-not-allowed hover:bg-transparent hover:text-zinc-600"
+                                    class="h-11 text-sm [&_svg]:size-[18px] text-zinc-600 cursor-not-allowed hover:bg-transparent hover:text-zinc-600"
                                     onclick={() => {
                                         handleNavigate();
                                         dashboard.openAddDialog();
@@ -160,11 +160,11 @@
                                     {initials(userName)}
                                 </Avatar.Fallback>
                             </Avatar.Root>
-                            <div class="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                            <div class="min-w-0 flex-1 overflow-hidden whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:opacity-0">
                                 <p class="text-sm font-medium text-zinc-100 truncate">{userName}</p>
                                 <p class="text-xs text-zinc-400/70 truncate">{userEmail}</p>
                             </div>
-                            <ChevronsUpDown class="h-4 w-4 text-zinc-500 shrink-0 group-data-[collapsible=icon]:hidden" />
+                            <ChevronsUpDown class="h-4 w-4 text-zinc-500 shrink-0 overflow-hidden opacity-100 transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0" />
                         </button>
                     {/snippet}
                 </DropdownMenu.Trigger>

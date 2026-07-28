@@ -31,3 +31,15 @@ export async function updatePassword(password) {
 export async function getSession() {
   return await supabase.auth.getSession();
 }
+
+// Verifies the 6-digit code from the "Confirm signup" email (requires the
+// template to use {{ .Token }} instead of the default {{ .ConfirmationURL }}
+// — see SUPABASE_OTP_SETUP.md). On success this establishes a real session,
+// same as clicking a confirmation link would have.
+export async function verifySignupOtp(email, token) {
+  return await supabase.auth.verifyOtp({ email, token, type: "signup" });
+}
+
+export async function resendSignupOtp(email) {
+  return await supabase.auth.resend({ type: "signup", email });
+}

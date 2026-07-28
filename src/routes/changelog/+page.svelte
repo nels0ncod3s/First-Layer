@@ -2,31 +2,18 @@
 	import MarketingNav from "$lib/components/marketing/MarketingNav.svelte";
 	import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
 
-	// Placeholder entries — replace with your real release history.
 	const entries = [
 		{
 			date: "July 2026",
 			tag: "New",
-			title: "Passkey support",
-			body: "Users can now register and sign in with passkeys across every SDK. Falls back to email automatically on unsupported devices."
+			title: "Dashboard rebuilt",
+			body: "Generate and revoke real API keys, manage and block your users, and see actual activity — all wired to live data instead of placeholders."
 		},
 		{
-			date: "June 2026",
-			tag: "Improved",
-			title: "Faster session verification",
-			body: "Edge-verified sessions now resolve in under 50ms on average, down from ~180ms, by caching JWKS closer to your users."
-		},
-		{
-			date: "May 2026",
+			date: "July 2026",
 			tag: "New",
-			title: "Webhook debugging tools",
-			body: "Inspect every outbound webhook, replay failed deliveries, and diff payloads directly from the dashboard."
-		},
-		{
-			date: "April 2026",
-			tag: "Fixed",
-			title: "Magic link expiry edge case",
-			body: "Fixed an issue where magic links generated right before a token rotation could be rejected as expired."
+			title: "Public REST API",
+			body: "Full CRUD for your project's end-users — POST /v1/auth/signup plus GET/PATCH/DELETE on /v1/users, scoped to your project by API key."
 		}
 	];
 

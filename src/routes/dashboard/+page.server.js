@@ -1,9 +1,30 @@
 import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
-// No load() here anymore — the project list comes from dashboard/+layout.server.js
-// now, since the header switcher (which lives in the layout) needs it on
-// every dashboard route, not just this grid page.
+// The project list itself still comes from dashboard/+layout.server.js (the
+// header switcher needs it on every route). This load is just for the grid
+// cards' metadata (key/user counts per project) — streamed rather than
+// awaited so it can't block navigation into this page the way the old
+// per-project stats round trip once did on the project overview page.
+export const load = async ({ locals, fetch }) => {
+	const { session } = await locals.safeGetSession();
+
+	async function loadCounts() {
+		const res = await fetch(`${API_URL}/api/projects/counts`, {
+			headers: { Authorization: `Bearer ${session.access_token}` }
+		});
+
+		if (!res.ok) {
+			console.error('Error loading project counts:', res.status, await res.text());
+			return {};
+		}
+
+		const { counts } = await res.json();
+		return counts ?? {};
+	}
+
+	return { counts: loadCounts() };
+};
 
 export const actions = {
 	// Creates a project for the logged-in user. Called from the "Add Project"

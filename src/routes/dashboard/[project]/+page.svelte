@@ -1,4 +1,5 @@
 <script>
+	import { onMount } from "svelte";
 	import { goto, preloadData } from "$app/navigation";
 	import { dashboard } from "$lib/stores/dashboard.svelte.js";
 
@@ -25,6 +26,22 @@
 	// email verification in this system yet, so a real "0" there would
 	// misleadingly imply we're measuring it.
 	let { data } = $props();
+
+	// Warm SvelteKit's preload cache for the pages someone's most likely to
+	// click into next, so by the time they do, the (cross-service, now
+	// hitting the real deployed backend instead of localhost) fetch has
+	// already happened instead of only starting after the click. Delayed
+	// slightly so it doesn't compete with this page's own initial render,
+	// and skipped for Settings since that route has no load() to warm.
+	onMount(() => {
+		const projectId = data.project.id;
+		const timer = setTimeout(() => {
+			preloadData(`/dashboard/${projectId}/API`);
+			preloadData(`/dashboard/${projectId}/Users`);
+			preloadData(`/dashboard/${projectId}/Logs`);
+		}, 300);
+		return () => clearTimeout(timer);
+	});
 
 	function buildStats(stats) {
 		return [
