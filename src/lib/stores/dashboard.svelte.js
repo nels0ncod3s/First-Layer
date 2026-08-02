@@ -11,7 +11,7 @@
 // Persistence lives in dashboard/+page.server.js's `create`/`delete` Form
 // Actions. This store does NOT talk to Supabase directly.
 
-import { goto } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
 
 class DashboardStore {
 	projects = $state([]);
@@ -59,12 +59,31 @@ class DashboardStore {
 	}
 
 	/** Called after the `create` Form Action returns the saved project. */
-	addProject(project) {
+	async addProject(project) {
 		this.projects = [...this.projects, project];
 		this.closeAddDialog();
 
 		// Post-creation redirect: land directly on the new project's workspace.
-		goto(`/dashboard/${project.id}`);
+		// Awaited on purpose — see the comment below.
+		await goto(`/dashboard/${project.id}`);
+
+		// `data.projects` (used by the grid page and the header switcher)
+		// comes from dashboard/+layout.server.js. SvelteKit only reruns a
+		// *layout's* load when something invalidates it — it does NOT do
+		// this automatically just because the user navigated away and
+		// came back. Without a nudge here, navigating back to /dashboard
+		// later would silently reuse the layout's pre-creation project
+		// list, and the project just added would seem to vanish until a
+		// hard refresh.
+		//
+		// This has to run AFTER the goto() above resolves, not at the same
+		// time as it — invalidateAll() is itself a (re)navigation, and
+		// firing two of those at once is exactly what caused the loading
+		// bar to get stuck before. Sequencing them means the goto() clears
+		// the bar first, then this one runs and clears cleanly on its own.
+		// It runs while we're still nested under /dashboard/[project],
+		// which shares the same parent layout, so this does reach it.
+		await invalidateAll();
 	}
 
 	// --- Navigation ------------------------------------------------------------

@@ -198,7 +198,7 @@
 		     hover, and a front sleeve holding the name/meta + options menu.
 		     Recolored to this app's own dark zinc + violet tokens instead of
 		     2.html's green — same shapes and motion, our palette. -->
-		<ul class="grid gap-5 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
+		<ul class="grid gap-5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
 			{#each filteredProjects as project (project.id)}
 				<li class="folder-card group">
 					<!-- Back shell + tab (decorative) -->
@@ -246,9 +246,9 @@
 									</button>
 								{/snippet}
 							</DropdownMenu.Trigger>
-							<DropdownMenu.Content align="end" class="bg-zinc-900 border-zinc-800 text-zinc-100">
+							<DropdownMenu.Content align="end" class="bg-zinc-900 border-zinc-800 text-zinc-100 min-w-48">
 								<DropdownMenu.Item
-									class="gap-2 focus:bg-zinc-800 focus:text-zinc-100"
+									class="gap-2 px-2.5 py-2 focus:bg-zinc-800 focus:text-zinc-100"
 									onclick={() => dashboard.openProjectSettings(project)}
 								>
 									<Settings class="h-4 w-4" />
@@ -256,7 +256,7 @@
 								</DropdownMenu.Item>
 								<DropdownMenu.Separator class="bg-zinc-800" />
 								<DropdownMenu.Item
-									class="gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-400"
+									class="gap-2 px-2.5 py-2 text-red-400 focus:bg-red-500/10 focus:text-red-400"
 									onclick={() => dashboard.requestDelete(project)}
 								>
 									<Trash2 class="h-4 w-4" />
@@ -277,7 +277,7 @@
 					<button
 						type="button"
 						onclick={() => dashboard.openAddDialog()}
-						class="group flex h-[210px] w-full flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors"
+						class="group mx-auto flex h-[210px] w-full max-w-[320px] flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors"
 					>
 						<div
 							class="h-10 w-10 rounded-xl bg-zinc-800/60 border border-zinc-700 flex items-center justify-center group-hover:border-violet-500/40 group-hover:bg-violet-500/10 transition-colors"
@@ -302,6 +302,9 @@
 	   same as 2.html. */
 	.folder-card {
 		position: relative;
+		width: 100%;
+		max-width: 320px;
+		margin-inline: auto;
 		height: 210px;
 		display: flex;
 		flex-direction: column;
@@ -317,7 +320,7 @@
 	.folder-back {
 		position: absolute;
 		inset: 0;
-		background: #27272a; /* zinc-800 */
+		background: linear-gradient(180deg, #2e2e33 0%, #27272a 60%); /* zinc-800, slightly lifted at the top for depth */
 		border: 1px solid #3f3f46; /* zinc-700 */
 		border-radius: 16px;
 	}
@@ -349,13 +352,16 @@
 		text-overflow: ellipsis;
 	}
 
-	/* Papers peeking out */
+	/* Papers peeking out. Sized to nearly fill the visible back area (the
+	   space between the tab and the front sleeve) rather than leaving a
+	   flat, empty-looking strip of back-shell color above them — that flat
+	   strip is what was reading as "a gap" above the card. */
 	.folder-papers {
 		position: absolute;
-		top: 16px;
+		top: 9px;
 		left: 14px;
 		right: 14px;
-		height: 78px;
+		height: 88px;
 		z-index: 1;
 	}
 	.paper {
@@ -368,7 +374,7 @@
 	.paper-1 {
 		left: 4px;
 		width: 68%;
-		height: 60px;
+		height: 74px;
 		transform: rotate(-3deg);
 		opacity: 0.85;
 		background: #3f3f46; /* zinc-700 */
@@ -376,7 +382,7 @@
 	.paper-2 {
 		right: 4px;
 		width: 78%;
-		height: 70px;
+		height: 84px;
 		transform: rotate(2deg);
 		/* subtle violet tint at the top edge only — a hint of brand color
 		   on the "inside" of the folder without dyeing the whole card */

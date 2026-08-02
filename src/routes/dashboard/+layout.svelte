@@ -85,7 +85,7 @@
 				// form fields; the goto() is now the only navigation in
 				// flight, so it can resolve cleanly and clear the bar itself.
 				await update({ reset: true, invalidateAll: false });
-				dashboard.addProject(result.data.project);
+				await dashboard.addProject(result.data.project);
 			} else if (result.type === "failure" && result.data?.field === "name") {
 				dashboard.nameError = result.data.message;
 				// No navigation happens on this path, so there's nothing to
