@@ -12,7 +12,6 @@
 	import Settings from "@lucide/svelte/icons/settings";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
 	import PackagePlus from "@lucide/svelte/icons/package-plus";
-	import FolderKanban from "@lucide/svelte/icons/folder-pen";
 
 	// This page only owns the grid content now — the "workspace" view moved
 	// to dashboard/[project]/+page.svelte, and the Add/Delete modals moved
@@ -193,55 +192,58 @@
 			</Button>
 		</div>
 	{:else}
-		<!-- "My Projects" card grid — each card is one connected folder
-		     silhouette (clip-path, not a separate floating tab piece), with
-		     a lighter "inside" panel behind it that becomes visible as the
-		     front cover recedes slightly on hover — closed at rest, open
-		     on hover. -->
+		<!-- "My Projects" card grid — folder metaphor, mirroring 2.html:
+		     a back shell with a tab (now showing the framework, instead of
+		     being purely decorative), two "papers" that peek out further on
+		     hover, and a front sleeve holding the name/meta + options menu.
+		     Recolored to this app's own dark zinc + violet tokens instead of
+		     2.html's green — same shapes and motion, our palette. -->
 		<ul class="grid gap-5 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
 			{#each filteredProjects as project (project.id)}
-				<li class="group relative min-h-[168px] overflow-hidden rounded-[14px]">
-					<div class="folder-body" aria-hidden="true"></div>
-					<svg class="folder-corner" viewBox="1 2 13 9" aria-hidden="true">
-						<path
-							d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
-						/>
-					</svg>
+				<li class="folder-card group">
+					<!-- Back shell + tab (decorative) -->
+					<div class="folder-back" aria-hidden="true">
+						<div class="folder-tab">
+							<span class="folder-tab-label">
+								{project.framework === "nextjs" ? "Next.js" : project.framework || "Project"}
+							</span>
+						</div>
+					</div>
 
-					<div class="relative z-10 px-6 pb-6 pt-9 min-h-[168px] flex flex-col justify-between">
+					<!-- Papers peeking out (decorative) -->
+					<div class="folder-papers" aria-hidden="true">
+						<div class="paper paper-1"></div>
+						<div class="paper paper-2"></div>
+					</div>
+
+					<!-- Front sleeve -->
+					<div class="folder-front">
 						<a
 							href={`/dashboard/${project.id}`}
 							onmouseenter={() => preloadData(`/dashboard/${project.id}`)}
 							onfocus={() => preloadData(`/dashboard/${project.id}`)}
-							class="flex items-start gap-4 w-full text-left pr-8"
+							class="folder-info"
 						>
-							<div class="h-12 w-12 shrink-0 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-								<FolderKanban class="h-6 w-6 text-violet-400" />
-							</div>
-							<div class="min-w-0 pt-1">
-								<p class="font-semibold text-lg text-zinc-100 truncate">{project.name}</p>
-								{#if project.framework}
-									<span
-										class="inline-block mt-1.5 rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] font-medium text-zinc-400 capitalize"
-									>
-										{project.framework === "nextjs" ? "Next.js" : project.framework}
-									</span>
-								{/if}
-							</div>
+							<h3 class="folder-title">{project.name}</h3>
+							<span class="folder-meta">
+								{formatDate(project.created_at)}
+								{#await data.counts}
+									<span class="text-zinc-600">· loading…</span>
+								{:then counts}
+									{@const stats = counts[project.id] ?? { keyCount: 0, userCount: 0 }}
+									· {stats.keyCount}
+									{stats.keyCount === 1 ? "key" : "keys"} · {stats.userCount}
+									{stats.userCount === 1 ? "user" : "users"}
+								{/await}
+							</span>
 						</a>
 
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
-									<Button
-										{...props}
-										variant="ghost"
-										size="icon"
-										class="absolute top-4 right-4 h-8 w-8 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800"
-										aria-label="Project options"
-									>
+									<button {...props} type="button" class="menu-btn" aria-label="Project options">
 										<EllipsisVertical class="h-4 w-4" />
-									</Button>
+									</button>
 								{/snippet}
 							</DropdownMenu.Trigger>
 							<DropdownMenu.Content align="end" class="bg-zinc-900 border-zinc-800 text-zinc-100">
@@ -262,18 +264,6 @@
 								</DropdownMenu.Item>
 							</DropdownMenu.Content>
 						</DropdownMenu.Root>
-
-						<p class="text-xs text-zinc-500">
-							{formatDate(project.created_at)}
-							{#await data.counts}
-								<span class="text-zinc-600">· loading…</span>
-							{:then counts}
-								{@const stats = counts[project.id] ?? { keyCount: 0, userCount: 0 }}
-								· {stats.keyCount}
-								{stats.keyCount === 1 ? "key" : "keys"} · {stats.userCount}
-								{stats.userCount === 1 ? "user" : "users"}
-							{/await}
-						</p>
 					</div>
 				</li>
 			{/each}
@@ -287,7 +277,7 @@
 					<button
 						type="button"
 						onclick={() => dashboard.openAddDialog()}
-						class="group flex min-h-[168px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors"
+						class="group flex h-[210px] w-full flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors"
 					>
 						<div
 							class="h-10 w-10 rounded-xl bg-zinc-800/60 border border-zinc-700 flex items-center justify-center group-hover:border-violet-500/40 group-hover:bg-violet-500/10 transition-colors"
@@ -305,43 +295,173 @@
 </div>
 
 <style>
-	/* Folder card, built from two pieces instead of one stretched shape —
-	   stretching the whole icon path with preserveAspectRatio="none" across
-	   a ~2:1 card warped the curves and corners non-uniformly (icon is
-	   natively ~1.16:1). Splitting it avoids that entirely:
-	   - .folder-corner draws only the tab + notch, cropped tightly out of
-	     Lucide's own "folder" path and rendered at its true, undistorted
-	     aspect ratio (uniform px-per-unit on both axes) — never stretched.
-	   - .folder-body is a plain div using normal border-radius for the
-	     other three corners, which CSS always renders perfectly circular
-	     regardless of the card's actual width. Its top-left corner is
-	     square and sits underneath .folder-corner, which supplies the real
-	     (rounded) top-left corner instead.
-	   Both pieces share the exact same fill/border so the seam where they
-	   meet is invisible. Static — no hover state. */
-	.folder-corner {
+	/* Folder card — same three-piece structure as 2.html (back shell + tab,
+	   peeking papers, front sleeve), just recolored to this app's own dark
+	   zinc + violet tokens instead of 2.html's green/white. Card itself
+	   carries the hover lift; the papers get an extra shift on top of that,
+	   same as 2.html. */
+	.folder-card {
+		position: relative;
+		height: 210px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		border-radius: 16px;
+		transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+	.folder-card:hover {
+		transform: translateY(-4px);
+	}
+
+	/* Back shell */
+	.folder-back {
 		position: absolute;
-		top: -7.5px;
-		left: -7.5px;
-		width: 97.5px;
-		height: 67.5px;
+		inset: 0;
+		background: #27272a; /* zinc-800 */
+		border: 1px solid #3f3f46; /* zinc-700 */
+		border-radius: 16px;
+	}
+
+	/* Tab — carries the framework name instead of being purely decorative */
+	.folder-tab {
+		position: absolute;
+		top: -10px;
+		left: 14px;
+		max-width: calc(100% - 28px);
+		height: 24px;
+		display: flex;
+		align-items: center;
+		padding: 0 12px;
+		background: #27272a;
+		border: 1px solid #3f3f46;
+		border-bottom: none;
+		border-top-left-radius: 8px;
+		border-top-right-radius: 8px;
+	}
+	.folder-tab-label {
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #a1a1aa; /* zinc-400 */
+		white-space: nowrap;
 		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Papers peeking out */
+	.folder-papers {
+		position: absolute;
+		top: 16px;
+		left: 14px;
+		right: 14px;
+		height: 78px;
 		z-index: 1;
 	}
-	.folder-corner path {
-		fill: #17171a;
-		stroke: #27272a;
-		stroke-width: 1;
-		vector-effect: non-scaling-stroke;
-	}
-	.folder-body {
+	.paper {
 		position: absolute;
-		top: 22.5px;
-		left: 0;
-		right: 0;
 		bottom: 0;
-		border-radius: 0 14px 14px 14px;
-		background: #17171a;
+		border-radius: 8px 8px 0 0;
+		box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
+		transition: transform 0.25s ease;
+	}
+	.paper-1 {
+		left: 4px;
+		width: 68%;
+		height: 60px;
+		transform: rotate(-3deg);
+		opacity: 0.85;
+		background: #3f3f46; /* zinc-700 */
+	}
+	.paper-2 {
+		right: 4px;
+		width: 78%;
+		height: 70px;
+		transform: rotate(2deg);
+		/* subtle violet tint at the top edge only — a hint of brand color
+		   on the "inside" of the folder without dyeing the whole card */
+		background: linear-gradient(165deg, #4c1d95 0%, #3f3f46 45%);
+	}
+	.folder-card:hover .paper-1 {
+		transform: rotate(-6deg) translateY(-4px);
+	}
+	.folder-card:hover .paper-2 {
+		transform: rotate(4deg) translateY(-6px);
+	}
+
+	/* Front sleeve */
+	.folder-front {
+		position: relative;
+		z-index: 2;
+		min-height: 104px;
+		background: linear-gradient(180deg, #18181b 0%, #09090b 100%);
 		border: 1px solid #27272a;
+		border-radius: 14px;
+		padding: 14px 16px;
+		box-sizing: border-box;
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: 12px;
+		box-shadow:
+			0 -4px 14px rgba(0, 0, 0, 0.25),
+			0 8px 18px rgba(0, 0, 0, 0.3);
+	}
+
+	.folder-info {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+		text-decoration: none;
+		border-radius: 6px;
+	}
+	.folder-info:focus-visible {
+		outline: 2px solid #8b5cf6;
+		outline-offset: 3px;
+	}
+	.folder-title {
+		margin: 0;
+		color: #f4f4f5; /* zinc-100 */
+		font-size: 1.05rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.folder-meta {
+		color: #c4b5fd; /* violet-300 */
+		font-size: 0.75rem;
+		font-weight: 500;
+	}
+
+	.menu-btn {
+		flex-shrink: 0;
+		background: rgba(255, 255, 255, 0.06);
+		border: none;
+		color: #f4f4f5;
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+	.menu-btn:hover {
+		background: rgba(255, 255, 255, 0.14);
+	}
+	.menu-btn:focus-visible {
+		outline: 2px solid #8b5cf6;
+		outline-offset: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.folder-card,
+		.paper {
+			transition: none;
+		}
 	}
 </style>

@@ -7,34 +7,32 @@
   import { highlightCode } from "$lib/highlight.js";
   import MarketingNav from "$lib/components/marketing/MarketingNav.svelte";
   import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
+  import CopyButton from "$lib/components/CopyButton.svelte";
   import KeyRound from "@lucide/svelte/icons/key-round";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Zap from "@lucide/svelte/icons/zap";
   import Puzzle from "@lucide/svelte/icons/puzzle";
   import Terminal from "@lucide/svelte/icons/terminal";
 
+  // --- Install command (hero + SDK section) ---------------------------
+  const installCommand = "npm install firstlayer";
+
   // --- Framework snippets ---------------------------------------------
-  // Real REST calls against the real backend — there's no published
-  // @firstlayer/sdk package yet, so these match the docs page exactly
-  // rather than pretending one exists.
+  // Usage of the published `firstlayer` npm package. The raw REST calls
+  // these wrap still live in full on the docs page (Quickstart / API
+  // reference) — this is just the ergonomic wrapper around them.
   const frameworks = [
     {
       id: "js",
       label: "JavaScript",
       file: "auth.js",
-      code: `const API_URL = "https://firstlayer-backend.pxxl.run";
-const API_KEY = "YOUR_API_KEY";          // Dashboard -> your project -> API
+      code: `import { FirstLayer } from "firstlayer";
+
+const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" }); // Dashboard -> your project -> API
 
 async function signUp(email, password) {
-  const res = await fetch(API_URL + "/v1/auth/signup", {
-    method: "POST",
-    headers: {
-      "x-api-key": API_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ email, password })
-  });
-  return res.json();
+  const { user } = await firstlayer.auth.signUp({ email, password });
+  return user;
 }`,
     },
     {
@@ -42,19 +40,16 @@ async function signUp(email, password) {
       label: "Svelte",
       file: "+page.svelte",
       code: `<script>
-  const API_URL = "https://firstlayer-backend.pxxl.run";
-  const API_KEY = "YOUR_API_KEY";
+  import { FirstLayer } from "firstlayer";
+
+  const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" });
 
   let email = $state("");
   let password = $state("");
 
   async function signUp() {
-    const res = await fetch(API_URL + "/v1/auth/signup", {
-      method: "POST",
-      headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-    return res.json();
+    const { user } = await firstlayer.auth.signUp({ email, password });
+    return user;
   }
 <` + `/script>`,
     },
@@ -62,16 +57,13 @@ async function signUp(email, password) {
       id: "react",
       label: "React",
       file: "App.jsx",
-      code: `const API_URL = "https://firstlayer-backend.pxxl.run";
-const API_KEY = "YOUR_API_KEY";
+      code: `import { FirstLayer } from "firstlayer";
+
+const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" });
 
 async function signUp(email, password) {
-  const res = await fetch(API_URL + "/v1/auth/signup", {
-    method: "POST",
-    headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
-  });
-  return res.json();
+  const { user } = await firstlayer.auth.signUp({ email, password });
+  return user;
 }`,
     },
   ];
@@ -176,6 +168,12 @@ async function signUp(email, password) {
 
       <div class="cta-row">
         <a class="btn-solid btn-lg" href="/signup">Start free — deploy in 5m</a>
+
+        <div class="install-pill">
+          <span class="install-prompt" aria-hidden="true">$</span>
+          <code>{installCommand}</code>
+          <CopyButton text={installCommand} label="Copy install command" variant="round" />
+        </div>
       </div>
     </div>
 
@@ -230,8 +228,9 @@ async function signUp(email, password) {
       <div class="sdk-text">
         <h2>Built by developers, for developers.</h2>
         <p>
-          A plain REST API under the hood — call it from anywhere with
-          nothing to install. Pick a framework to see it in five lines.
+          One npm package that works the same way in every JavaScript
+          framework. Install it once, then pick a framework below to see
+          it in a few lines.
         </p>
       </div>
 
@@ -253,6 +252,7 @@ async function signUp(email, password) {
         <div class="code-window">
           <div class="flat-header">
             <span class="flat-filename">{active.file}</span>
+            <CopyButton text={active.code} label="Copy code" />
           </div>
           <pre class="code-body"><code>{@html highlighted}</code></pre>
         </div>
@@ -293,8 +293,8 @@ async function signUp(email, password) {
       <article class="bento-tile tile-rest">
         <div class="tile-icon"><Terminal class="h-5 w-5" /></div>
         <span class="tile-tag">REST</span>
-        <h3>A plain REST API</h3>
-        <p>No SDK lock-in, no vendor black box — call it from anywhere with a normal HTTP client, in any language.</p>
+        <h3>REST underneath</h3>
+        <p>The npm package is a thin wrapper — reach for the same REST endpoints directly from any other language, anytime.</p>
       </article>
     </div>
   </section>
@@ -468,9 +468,41 @@ async function signUp(email, password) {
   .cta-row {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
     margin-bottom: 3rem;
+  }
+
+  /* npm install pill — sits next to the primary CTA so the hero gains
+     a copyable install command without adding a whole extra row. */
+  .install-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #12121a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 0.5rem 0.5rem 0.5rem 1.15rem;
+    font-family: "Geist Mono Variable", "Geist Mono", monospace;
+    font-size: 0.88rem;
+    color: #d4d4d8;
+  }
+  .install-prompt {
+    color: #a78bfa;
+    font-weight: 600;
+  }
+  .install-pill code {
+    background: none;
+    padding: 0;
+    color: #d4d4d8;
+    white-space: nowrap;
+  }
+  @media (max-width: 400px) {
+    .install-pill {
+      font-size: 0.78rem;
+      padding: 0.45rem 0.45rem 0.45rem 1rem;
+    }
   }
 
   /* ---------- signature auth orb ---------- */
@@ -690,6 +722,10 @@ async function signUp(email, password) {
     flex-direction: column;
   }
   .flat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
     padding: 0.65rem 1.25rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }

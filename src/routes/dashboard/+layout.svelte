@@ -67,14 +67,34 @@
 			isCreating = false;
 			if (result.type === "success" && result.data?.project) {
 				toast.success(`"${result.data.project.name}" created`);
+				// dashboard.addProject() below calls goto() to jump straight to
+				// the new project's page — that navigation runs its own fresh
+				// load() and is exactly what clears the top loading bar
+				// ($navigating) when it finishes.
+				//
+				// The bug: update()'s default behavior ALSO reruns every load()
+				// on the page via invalidateAll(), and it was doing that at the
+				// very same time as the goto() above. Two overlapping
+				// navigations were racing for the same $navigating flag, and
+				// whichever one lost the race never got to clear it — so the
+				// bar just sat there spinning until some unrelated click (like
+				// opening a project) started a fresh navigation and reset it.
+				//
+				// invalidateAll: false removes that second, redundant
+				// navigation. update() still applies the result and resets the
+				// form fields; the goto() is now the only navigation in
+				// flight, so it can resolve cleanly and clear the bar itself.
+				await update({ reset: true, invalidateAll: false });
 				dashboard.addProject(result.data.project);
 			} else if (result.type === "failure" && result.data?.field === "name") {
 				dashboard.nameError = result.data.message;
-			} else if (result.type === "failure") {
+				// No navigation happens on this path, so there's nothing to
+				// race — the default update() is fine here.
+				await update({ reset: false });
+			} else {
 				toast.error(result.data?.message || "Could not create project.");
+				await update({ reset: false });
 			}
-			// Don't reset form fields on failure so the user doesn't lose their input.
-			await update({ reset: result.type === "success" });
 		};
 	}
 
