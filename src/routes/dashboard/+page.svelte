@@ -46,23 +46,91 @@
 		});
 	}
 
+	// Sums the per-project key/user counts (already fetched for the cards)
+	// into totals for the stats strip — no extra request, just addition
+	// over data that's already on the page.
+	function aggregateCounts(counts) {
+		let keys = 0;
+		let users = 0;
+		for (const p of dashboard.projects) {
+			const c = counts[p.id];
+			if (c) {
+				keys += c.keyCount;
+				users += c.userCount;
+			}
+		}
+		return { keys, users };
+	}
+
 	// --- Search ---------------------------------------------------------------
 	let searchQuery = $state("");
+	let searchInputEl = $state(null);
 	let filteredProjects = $derived(
 		searchQuery.trim()
 			? dashboard.projects.filter((p) => p.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
 			: dashboard.projects
 	);
+
+	// Cmd+K (Mac) / Ctrl+K (Windows/Linux) jumps straight to the search
+	// input from anywhere on this page. The label shown in the input
+	// itself is resolved client-side only (navigator isn't available
+	// during SSR).
+	let shortcutLabel = $state("Ctrl K");
+	$effect(() => {
+		if (navigator.platform.toUpperCase().includes("MAC")) shortcutLabel = "⌘K";
+	});
+
+	function handleGlobalKeydown(e) {
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+			e.preventDefault();
+			searchInputEl?.focus();
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <!-- The sidebar, Sidebar.Provider, Sidebar.Trigger, the breadcrumb, and the
      Add/Delete Project dialogs are all provided by +layout.svelte — don't
      repeat them here. -->
 
 <div class="w-full pl-4 pr-4 sm:pl-6 sm:pr-6 lg:pl-8">
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-		<h1 class="text-lg font-semibold text-zinc-100 shrink-0">My Projects</h1>
+	<!-- Stats strip — Total Projects is free (array length), API Keys /
+	     Users are summed client-side from the same per-project counts
+	     already fetched for the card metadata below. No new requests, and
+	     nothing here is a number we can't actually back with real data
+	     (no MAU/request-rate/error-rate — that would need session and
+	     request tracking that doesn't exist in this system yet). -->
+	{#if dashboard.projects.length > 0}
+		<div class="grid grid-cols-3 gap-3 mb-6">
+			<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+				<p class="text-xs text-zinc-500">Total Projects</p>
+				<p class="text-2xl font-semibold text-zinc-100 mt-1">{dashboard.projects.length}</p>
+			</div>
+			<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+				<p class="text-xs text-zinc-500">API Keys</p>
+				<p class="text-2xl font-semibold text-zinc-100 mt-1">
+					{#await data.counts}
+						<span class="text-zinc-600">···</span>
+					{:then counts}
+						{aggregateCounts(counts).keys}
+					{/await}
+				</p>
+			</div>
+			<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+				<p class="text-xs text-zinc-500">Total Users</p>
+				<p class="text-2xl font-semibold text-zinc-100 mt-1">
+					{#await data.counts}
+						<span class="text-zinc-600">···</span>
+					{:then counts}
+						{aggregateCounts(counts).users}
+					{/await}
+				</p>
+			</div>
+		</div>
+	{/if}
 
+	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
 		<div class="flex items-center gap-2 sm:ml-auto">
 			<div class="relative flex-1 sm:flex-none">
 				<Search class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -70,8 +138,14 @@
 					type="search"
 					placeholder="Search projects..."
 					bind:value={searchQuery}
-					class="pl-8 w-full sm:w-56 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-violet-500"
+					bind:ref={searchInputEl}
+					class="pl-8 pr-12 w-full sm:w-56 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-violet-500"
 				/>
+				<kbd
+					class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500"
+				>
+					{shortcutLabel}
+				</kbd>
 			</div>
 
 			<Button
@@ -146,7 +220,13 @@
 							</div>
 							<div class="min-w-0 pt-1">
 								<p class="font-semibold text-lg text-zinc-100 truncate">{project.name}</p>
-								<p class="text-sm text-zinc-500 mt-1">Tap to open workspace</p>
+								{#if project.framework}
+									<span
+										class="inline-block mt-1.5 rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] font-medium text-zinc-400 capitalize"
+									>
+										{project.framework === "nextjs" ? "Next.js" : project.framework}
+									</span>
+								{/if}
 							</div>
 						</a>
 
@@ -197,6 +277,29 @@
 					</div>
 				</li>
 			{/each}
+
+			{#if !searchQuery.trim()}
+				<!-- Dashed "add" tile, styled to sit in the grid as another card
+				     slot rather than leaving a hard stop after the last real
+				     project. Hidden while actively searching so it doesn't read
+				     as a stray result. -->
+				<li>
+					<button
+						type="button"
+						onclick={() => dashboard.openAddDialog()}
+						class="group flex min-h-[168px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors"
+					>
+						<div
+							class="h-10 w-10 rounded-xl bg-zinc-800/60 border border-zinc-700 flex items-center justify-center group-hover:border-violet-500/40 group-hover:bg-violet-500/10 transition-colors"
+						>
+							<Plus class="h-5 w-5 text-zinc-500 group-hover:text-violet-400 transition-colors" />
+						</div>
+						<span class="text-sm font-medium text-zinc-500 group-hover:text-zinc-300 transition-colors">
+							New project
+						</span>
+					</button>
+				</li>
+			{/if}
 		</ul>
 	{/if}
 </div>

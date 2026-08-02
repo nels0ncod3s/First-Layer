@@ -41,6 +41,17 @@ export const actions = {
 			return fail(400, { field: 'name', message: 'Project name is required.' });
 		}
 
+		// Letters, numbers, hyphens, underscores only — keeps names sane in
+		// URLs, breadcrumbs, and the sidebar without needing to escape or
+		// truncate anything downstream. Re-checked here because the client
+		// check in +layout.svelte can be bypassed.
+		if (!/^[a-zA-Z0-9_-]{1,30}$/.test(name)) {
+			return fail(400, {
+				field: 'name',
+				message: 'Only letters, numbers, hyphens, and underscores allowed (max 30 characters).'
+			});
+		}
+
 		const clientSecret = `fl_secret_${crypto.randomUUID().replace(/-/g, '')}`;
 
 		const { data: project, error } = await locals.supabase

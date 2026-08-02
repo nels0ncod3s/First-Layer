@@ -47,8 +47,21 @@
 		activeProject ? (pageSegment ? [activeProject.name, pageSegment] : [activeProject.name]) : []
 	);
 
+	const PROJECT_NAME_PATTERN = /^[a-zA-Z0-9_-]{1,30}$/;
+
 	/** Submits the "Create project" form to the `create` action. */
-	function submitCreate() {
+	function submitCreate({ formData, cancel }) {
+		// Instant feedback for the common case, without a round trip — the
+		// same regex is re-checked server-side in +page.server.js's `create`
+		// action, which is the authoritative check (this one can be
+		// bypassed, that one can't).
+		const name = (formData.get("name") ?? "").toString().trim();
+		if (!PROJECT_NAME_PATTERN.test(name)) {
+			dashboard.nameError = "Only letters, numbers, hyphens, and underscores allowed (max 30 characters).";
+			cancel();
+			return;
+		}
+
 		isCreating = true;
 		return async ({ result, update }) => {
 			isCreating = false;
@@ -249,9 +262,15 @@
 					oninput={() => (dashboard.nameError = "")}
 					autofocus
 					required
+					maxlength={30}
+					pattern="[a-zA-Z0-9_-]{1,30}"
+					title="Letters, numbers, hyphens, and underscores only"
 					aria-invalid={dashboard.nameError ? "true" : undefined}
 					class="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-violet-500 {dashboard.nameError ? 'border-red-500/70 focus-visible:ring-red-500' : ''}"
 				/>
+				{#if !dashboard.nameError}
+					<p class="text-xs text-zinc-500 -mt-1">Letters, numbers, hyphens, and underscores only.</p>
+				{/if}
 				{#if dashboard.nameError}
 					<p class="text-xs text-red-400">{dashboard.nameError}</p>
 				{/if}

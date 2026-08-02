@@ -1,6 +1,6 @@
 <script>
     import { logout } from "$lib/services/auth";
-    import { goto } from "$app/navigation";
+    import { goto, preloadData } from "$app/navigation";
     import { page } from "$app/stores";
     import { dashboard } from "$lib/stores/dashboard.svelte.js";
 
@@ -13,10 +13,12 @@
     import Auth from "@lucide/svelte/icons/shield";
     import UserCog from "@lucide/svelte/icons/user-cog";
     import APIKey from "@lucide/svelte/icons/key";
+    import Plus from "@lucide/svelte/icons/plus";
 
     import * as Sidebar from "$lib/components/ui/sidebar/index.js";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
     import * as Avatar from "$lib/components/ui/avatar/index.js";
+    import { Button } from "$lib/components/ui/button/index.js";
 
     // avatarUrl is optional — falls back to initials if not provided
     let { userName = "User", userEmail = "", avatarUrl = "" } = $props();
@@ -27,6 +29,11 @@
     // sidebar automatically reflect whichever project's pages you're
     // currently on, and survive a page refresh.
     let activeProjectId = $derived($page.params.project ?? null);
+    // Full project object (name, id, ...) — populated by
+    // dashboard/[project]/+layout.server.js whenever we're under that
+    // route. Used only for the "scoped to this project" section label
+    // below; activeProjectId alone is enough to build every link.
+    let activeProject = $derived($page.data.project ?? null);
 
     async function signOut() {
         await logout();
@@ -105,41 +112,99 @@
                         </Sidebar.MenuButton>
                     </Sidebar.MenuItem>
 
-                    {#each items as item (item.id)}
-                        <Sidebar.MenuItem>
-                            {#if activeProjectId}
-                                {@const url = `/dashboard/${activeProjectId}/${item.segment}`}
-                                <Sidebar.MenuButton
-                                    isActive={$page.url.pathname === url}
-                                    class="h-11 text-sm [&_svg]:size-[18px] text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 data-[active=true]:bg-zinc-800 data-[active=true]:text-zinc-100"
-                                >
-                                    {#snippet child({ props })}
-                                        <a href={url} {...props} onclick={handleNavigate}>
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                        </a>
-                                    {/snippet}
-                                </Sidebar.MenuButton>
-                            {:else}
-                                <!-- No active project yet: greyed out, prompts project
-                                     creation instead of navigating anywhere. -->
-                                <Sidebar.MenuButton
-                                    class="h-11 text-sm [&_svg]:size-[18px] text-zinc-600 cursor-not-allowed hover:bg-transparent hover:text-zinc-600"
-                                    onclick={() => {
-                                        handleNavigate();
-                                        dashboard.openAddDialog();
-                                    }}
-                                >
-                                    <item.icon />
-                                    <span>{item.title}</span>
-                                </Sidebar.MenuButton>
-                            {/if}
-                        </Sidebar.MenuItem>
-                    {/each}
-
                 </Sidebar.Menu>
             </Sidebar.GroupContent>
         </Sidebar.Group>
+
+        {#if activeProjectId}
+            <!-- Project-scoped nav (Users/Auth/API Keys/Logs/Settings) — only
+                 exists once a project is actually active. These used to
+                 render permanently but disabled/greyed-out, which read as
+                 ambiguous ("are these global settings or per-project?").
+                 Hiding them until there's a project in the URL removes that
+                 question outright. The left border + indent under the label
+                 marks them visually as children of the active project, not
+                 a second set of top-level nav items. -->
+            <Sidebar.Group>
+                <Sidebar.GroupLabel class="text-zinc-500 group-data-[collapsible=icon]:hidden">
+                    {activeProject?.name ?? "Project"}
+                </Sidebar.GroupLabel>
+                <Sidebar.GroupContent>
+                    <div
+                        class="ml-[19px] border-l border-zinc-800 pl-3 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:pl-0"
+                    >
+                        <Sidebar.Menu class="gap-1.5">
+                            {#each items as item (item.id)}
+                                {@const url = `/dashboard/${activeProjectId}/${item.segment}`}
+                                <Sidebar.MenuItem>
+                                    <Sidebar.MenuButton
+                                        isActive={$page.url.pathname === url}
+                                        class="h-11 text-sm [&_svg]:size-[18px] text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 data-[active=true]:bg-zinc-800 data-[active=true]:text-zinc-100"
+                                    >
+                                        {#snippet child({ props })}
+                                            <a href={url} {...props} onclick={handleNavigate}>
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </a>
+                                        {/snippet}
+                                    </Sidebar.MenuButton>
+                                </Sidebar.MenuItem>
+                            {/each}
+                        </Sidebar.Menu>
+                    </div>
+                </Sidebar.GroupContent>
+            </Sidebar.Group>
+        {:else}
+            <!-- No active project: rather than leave the sidebar looking
+                 unfinished below "Projects", surface the actual project
+                 list here so there's something to click straight away. -->
+            <Sidebar.Group>
+                <Sidebar.GroupLabel class="text-zinc-500 group-data-[collapsible=icon]:hidden">
+                    Your Projects
+                </Sidebar.GroupLabel>
+                <Sidebar.GroupContent>
+                    {#if dashboard.projects.length > 0}
+                        <Sidebar.Menu class="gap-1 max-h-[240px] overflow-y-auto">
+                            {#each dashboard.projects as project (project.id)}
+                                <Sidebar.MenuItem>
+                                    <Sidebar.MenuButton
+                                        class="h-9 text-sm [&_svg]:size-[16px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                                    >
+                                        {#snippet child({ props })}
+                                            <a
+                                                href={`/dashboard/${project.id}`}
+                                                {...props}
+                                                onclick={handleNavigate}
+                                                onmouseenter={() => preloadData(`/dashboard/${project.id}`)}
+                                                onfocus={() => preloadData(`/dashboard/${project.id}`)}
+                                            >
+                                                <Folder />
+                                                <span class="truncate">{project.name}</span>
+                                            </a>
+                                        {/snippet}
+                                    </Sidebar.MenuButton>
+                                </Sidebar.MenuItem>
+                            {/each}
+                        </Sidebar.Menu>
+                    {:else}
+                        <div class="px-2 py-2 group-data-[collapsible=icon]:hidden">
+                            <p class="text-xs text-zinc-500 mb-2">No projects yet.</p>
+                            <Button
+                                size="sm"
+                                class="w-full gap-1.5 bg-violet-600 hover:bg-violet-500 text-white"
+                                onclick={() => {
+                                    handleNavigate();
+                                    dashboard.openAddDialog();
+                                }}
+                            >
+                                <Plus class="h-3.5 w-3.5" />
+                                New project
+                            </Button>
+                        </div>
+                    {/if}
+                </Sidebar.GroupContent>
+            </Sidebar.Group>
+        {/if}
     </Sidebar.Content>
 
     <!-- Profile + logout -->
