@@ -1,5 +1,6 @@
 <script>
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
 	import * as Empty from '$lib/components/ui/empty/index.js';
@@ -10,6 +11,7 @@
 
 	import Users from '@lucide/svelte/icons/users';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
 	import Ban from '@lucide/svelte/icons/ban';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
@@ -20,6 +22,11 @@
 	let deleteTarget = $state(null);
 	let isDeleting = $state(false);
 
+	let isRefreshing = $state(false);
+	let selectedIds = $state(new Set());
+	let isBulkActing = $state(false);
+	let bulkDeleteConfirmOpen = $state(false);
+
 	function formatDate(iso) {
 		if (!iso) return '—';
 		return new Date(iso).toLocaleDateString(undefined, {
@@ -27,6 +34,24 @@
 			month: 'short',
 			day: 'numeric'
 		});
+	}
+
+	async function refresh() {
+		isRefreshing = true;
+		selectedIds = new Set();
+		await invalidateAll();
+		isRefreshing = false;
+	}
+
+	function toggleSelect(id, checked) {
+		const next = new Set(selectedIds);
+		if (checked) next.add(id);
+		else next.delete(id);
+		selectedIds = next;
+	}
+
+	function toggleSelectAll(users, checked) {
+		selectedIds = checked ? new Set(users.map((u) => u.id)) : new Set();
 	}
 
 	function submitDelete() {
@@ -53,15 +78,82 @@
 			await update();
 		};
 	}
+
+	// Bulk actions reuse the existing single-user form actions, firing
+	// one request per selected user. Fine at dashboard scale; if you
+	// ever need this for hundreds of users at once, add a real batch
+	// endpoint on the backend instead of looping requests like this.
+	async function bulkDelete() {
+		isBulkActing = true;
+		const ids = [...selectedIds];
+		let failures = 0;
+
+		for (const id of ids) {
+			const formData = new FormData();
+			formData.append('userId', id);
+			const res = await fetch('?/deleteUser', { method: 'POST', body: formData });
+			if (!res.ok) failures++;
+		}
+
+		isBulkActing = false;
+		bulkDeleteConfirmOpen = false;
+		selectedIds = new Set();
+
+		if (failures === 0) {
+			toast.success(`${ids.length} user${ids.length === 1 ? '' : 's'} deleted`);
+		} else {
+			toast.error(`${failures} of ${ids.length} deletes failed`);
+		}
+
+		await invalidateAll();
+	}
+
+	async function bulkSetBlocked(blocked) {
+		isBulkActing = true;
+		const ids = [...selectedIds];
+		let failures = 0;
+
+		for (const id of ids) {
+			const formData = new FormData();
+			formData.append('userId', id);
+			formData.append('blocked', String(blocked));
+			const res = await fetch('?/toggleBlock', { method: 'POST', body: formData });
+			if (!res.ok) failures++;
+		}
+
+		isBulkActing = false;
+		selectedIds = new Set();
+
+		if (failures === 0) {
+			toast.success(`${ids.length} user${ids.length === 1 ? '' : 's'} ${blocked ? 'blocked' : 'unblocked'}`);
+		} else {
+			toast.error(`${failures} of ${ids.length} updates failed`);
+		}
+
+		await invalidateAll();
+	}
 </script>
 
 <div class="space-y-6">
 	<!-- Header -->
-	<div>
-		<h1 class="text-2xl font-bold tracking-tight text-zinc-100">Users</h1>
-		<p class="text-sm text-zinc-400">
-			End-users created in this project via the API — real accounts, not team members.
-		</p>
+	<div class="flex items-start justify-between gap-4">
+		<div>
+			<h1 class="text-2xl font-bold tracking-tight text-zinc-100">Users</h1>
+			<p class="text-sm text-zinc-400">
+				End-users created in this project via the API — real accounts, not team members.
+			</p>
+		</div>
+
+		<Button
+			variant="outline"
+			size="sm"
+			class="border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 gap-2"
+			disabled={isRefreshing}
+			onclick={refresh}
+		>
+			<RefreshCw class={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+			Refresh
+		</Button>
 	</div>
 
 	{#await data.users}
@@ -82,12 +174,62 @@
 				</Empty.Header>
 			</Empty.Root>
 		{:else}
+			<!-- Bulk action toolbar -->
+			{#if selectedIds.size > 0}
+				<div class="flex items-center justify-between rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
+					<p class="text-sm text-zinc-300">
+						<span class="font-medium text-zinc-100">{selectedIds.size}</span> selected
+					</p>
+					<div class="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isBulkActing}
+							class="border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 gap-2"
+							onclick={() => bulkSetBlocked(true)}
+						>
+							<Ban class="h-4 w-4" />
+							Block
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isBulkActing}
+							class="border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 gap-2"
+							onclick={() => bulkSetBlocked(false)}
+						>
+							<CircleCheck class="h-4 w-4" />
+							Unblock
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isBulkActing}
+							class="border-red-500/30 bg-transparent text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-2"
+							onclick={() => (bulkDeleteConfirmOpen = true)}
+						>
+							<Trash2 class="h-4 w-4" />
+							Delete
+						</Button>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Table Container -->
 			<div class="overflow-hidden rounded-xl border border-zinc-800 bg-[#0c0c0e] shadow-sm">
 				<div class="overflow-x-auto">
 					<table class="w-full text-left text-sm text-zinc-300">
 						<thead class="border-b border-zinc-800 bg-[#0e0e11] text-xs font-semibold uppercase tracking-wider text-zinc-500">
 							<tr>
+								<th class="w-10 px-6 py-4">
+									<input
+										type="checkbox"
+										class="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-violet-500"
+										checked={users.length > 0 && selectedIds.size === users.length}
+										onchange={(e) => toggleSelectAll(users, e.currentTarget.checked)}
+										aria-label="Select all users"
+									/>
+								</th>
 								<th class="px-6 py-4">Email</th>
 								<th class="px-6 py-4">User ID</th>
 								<th class="px-6 py-4">Created</th>
@@ -98,6 +240,15 @@
 						<tbody class="divide-y divide-zinc-800/50">
 							{#each users as user (user.id)}
 								<tr class="hover:bg-zinc-900/30 transition-colors">
+									<td class="px-6 py-4">
+										<input
+											type="checkbox"
+											class="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-violet-500"
+											checked={selectedIds.has(user.id)}
+											onchange={(e) => toggleSelect(user.id, e.currentTarget.checked)}
+											aria-label={`Select ${user.email}`}
+										/>
+									</td>
 									<td class="whitespace-nowrap px-6 py-4 font-medium text-zinc-100">{user.email}</td>
 									<td class="whitespace-nowrap px-6 py-4 font-mono text-xs text-zinc-500">{user.id}</td>
 									<td class="whitespace-nowrap px-6 py-4 text-zinc-400">{formatDate(user.created_at)}</td>
@@ -166,7 +317,7 @@
 	{/await}
 </div>
 
-<!-- Delete confirmation -->
+<!-- Single delete confirmation -->
 <Dialog.Root open={deleteTarget !== null} onOpenChange={(open) => !open && (deleteTarget = null)}>
 	<Dialog.Content class="sm:max-w-sm bg-zinc-950 border border-zinc-800 text-zinc-100">
 		<Dialog.Header>
@@ -193,5 +344,31 @@
 				</Button>
 			</Dialog.Footer>
 		</form>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Bulk delete confirmation -->
+<Dialog.Root open={bulkDeleteConfirmOpen} onOpenChange={(open) => !open && (bulkDeleteConfirmOpen = false)}>
+	<Dialog.Content class="sm:max-w-sm bg-zinc-950 border border-zinc-800 text-zinc-100">
+		<Dialog.Header>
+			<Dialog.Title class="text-zinc-100">Delete {selectedIds.size} users</Dialog.Title>
+			<Dialog.Description class="text-zinc-400">
+				This will permanently delete {selectedIds.size} selected user{selectedIds.size === 1 ? '' : 's'}. This can't be undone.
+			</Dialog.Description>
+		</Dialog.Header>
+
+		<Dialog.Footer class="mt-2 bg-zinc-950 border-zinc-800/60">
+			<Button
+				type="button"
+				variant="outline"
+				class="border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+				onclick={() => (bulkDeleteConfirmOpen = false)}
+			>
+				Cancel
+			</Button>
+			<Button type="button" disabled={isBulkActing} class="bg-red-600 hover:bg-red-500 text-white" onclick={bulkDelete}>
+				{isBulkActing ? 'Deleting...' : `Delete ${selectedIds.size}`}
+			</Button>
+		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
