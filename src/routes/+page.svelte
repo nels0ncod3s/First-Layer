@@ -15,7 +15,7 @@
   import Terminal from "@lucide/svelte/icons/terminal";
 
   // --- Install command (hero + SDK section) ---------------------------
-  const installCommand = "npm install firstlayer";
+  const installCommand = "npm install @firstlayer/sdk";
 
   // --- Framework snippets ---------------------------------------------
   // Usage of the published `firstlayer` npm package. The raw REST calls
