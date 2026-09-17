@@ -11,7 +11,8 @@
 // Persistence lives in dashboard/+page.server.js's `create`/`delete` Form
 // Actions. This store does NOT talk to Supabase directly.
 
-import { goto, invalidateAll } from "$app/navigation";
+import { goto, invalidateAll } from '$app/navigation';
+import { getContext, setContext } from 'svelte';
 
 class DashboardStore {
 	projects = $state([]);
@@ -21,13 +22,13 @@ class DashboardStore {
 
 	// --- Add Project modal --------------------------------------------------
 	dialogOpen = $state(false);
-	newProjectName = $state("");
-	newProjectFramework = $state("");
-	nameError = $state("");
+	newProjectName = $state('');
+	newProjectFramework = $state('');
+	nameError = $state('');
 
 	// --- Delete Project modal -----------------------------------------------
 	deleteTarget = $state(null);
-	deleteConfirmText = $state("");
+	deleteConfirmText = $state('');
 
 	get canDelete() {
 		return this.deleteTarget !== null && this.deleteConfirmText === this.deleteTarget.name;
@@ -53,9 +54,9 @@ class DashboardStore {
 
 	closeAddDialog() {
 		this.dialogOpen = false;
-		this.nameError = "";
-		this.newProjectName = "";
-		this.newProjectFramework = "";
+		this.nameError = '';
+		this.newProjectName = '';
+		this.newProjectFramework = '';
 	}
 
 	/** Called after the `create` Form Action returns the saved project. */
@@ -113,21 +114,33 @@ class DashboardStore {
 	// --- Delete Project --------------------------------------------------------
 	requestDelete(project) {
 		this.deleteTarget = project;
-		this.deleteConfirmText = "";
+		this.deleteConfirmText = '';
 		this.switcherOpen = false;
 	}
 
 	cancelDelete() {
 		this.deleteTarget = null;
-		this.deleteConfirmText = "";
+		this.deleteConfirmText = '';
 	}
 
 	/** Called after the `delete` Form Action confirms the row was removed. */
 	removeProject(id) {
 		this.projects = this.projects.filter((p) => p.id !== id);
 		this.deleteTarget = null;
-		this.deleteConfirmText = "";
+		this.deleteConfirmText = '';
 	}
 }
 
-export const dashboard = new DashboardStore();
+// One instance per dashboard layout. Never share user data across SSR requests.
+const DASHBOARD_CONTEXT = Symbol('first-layer-dashboard');
+export function createDashboard(projects) {
+	const dashboard = new DashboardStore();
+	dashboard.setProjects(projects);
+	setContext(DASHBOARD_CONTEXT, dashboard);
+	return dashboard;
+}
+export function getDashboard() {
+	const dashboard = getContext(DASHBOARD_CONTEXT);
+	if (!dashboard) throw new Error('Dashboard context is missing');
+	return dashboard;
+}

@@ -1,99 +1,100 @@
-<footer class="footer">
-	<div class="footer-inner">
-		<div class="footer-brand">
-			<a class="brand" href="/">
-				<span class="brand-mark" aria-hidden="true">⌁</span>
-				First Layer
-			</a>
-			<p class="status">
-				<span class="status-dot"></span>
-				All systems operational
-			</p>
+<script>
+	import BrandMark from '$lib/components/BrandMark.svelte';
+	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+</script>
+
+<footer class="marketing-footer">
+	<div class="footer-main">
+		<div>
+			<a href="/" class="brand"><BrandMark size={28} />first layer.</a>
+			<p>Your product, one layer closer.</p>
 		</div>
-
-		<nav class="footer-links">
-			<a href="/pricing">Pricing</a>
-			<a href="/changelog">Changelog</a>
-			<a href="/docs">Docs</a>
+		<nav aria-label="Footer navigation">
+			<a href="/docs">Documentation <ArrowUpRight size={14} /></a><a href="/pricing"
+				>Pricing <ArrowUpRight size={14} /></a
+			><a href="/changelog">Changelog <ArrowUpRight size={14} /></a>
 		</nav>
-
-		<p class="copyright">© 2026 First Layer, Inc.</p>
+	</div>
+	<div class="footer-bottom">
+		<span>© {new Date().getFullYear()} First Layer</span><span>Built for the people who build.</span
+		><a href="/signup">Let’s build something.</a>
 	</div>
 </footer>
 
 <style>
-	a {
-		color: inherit;
-		text-decoration: none;
+	.marketing-footer {
+		max-width: 1280px;
+		margin: auto;
+		padding: 60px 40px 25px;
+		color: #8f899e;
+	}
+	.footer-main {
+		display: flex;
+		justify-content: space-between;
+		gap: 40px;
+		padding-bottom: 50px;
+		border-bottom: 1px solid #ffffff14;
 	}
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-weight: 700;
-		font-size: 1.05rem;
+		gap: 12px;
+		font-size: 24px;
+		font-weight: 650;
+		color: #eeeaf6;
+		letter-spacing: -1px;
 	}
-	.brand-mark {
-		color: #a78bfa;
-		font-size: 1.2rem;
+	.brand :global(svg) {
+		color: #b7a2ff;
 	}
-
-	.footer {
-		max-width: 1180px;
-		margin: 0 auto;
-		padding: 2.5rem 1.5rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.08);
+	.footer-main p {
+		font-size: 14px;
+		margin-top: 18px;
 	}
-	.footer-inner {
+	.footer-main nav {
 		display: flex;
-		flex-wrap: wrap;
+		gap: 38px;
+		align-items: flex-start;
+		padding-top: 8px;
+	}
+	.footer-main nav a {
+		display: flex;
+		gap: 12px;
 		align-items: center;
-		justify-content: space-between;
-		gap: 1.25rem 2rem;
+		font-size: 13px;
+		color: #b3aebf;
 	}
-	.footer-brand {
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-	.footer-links {
-		display: flex;
-		gap: 1.75rem;
-	}
-	.footer-links a {
-		color: #9ca3af;
-		font-size: 0.9rem;
-		transition: color 0.15s ease;
-	}
-	.footer-links a:hover {
+	.footer-main nav a:hover {
 		color: #fff;
 	}
-	.status {
+	.footer-bottom {
+		padding-top: 24px;
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		color: #9ca3af;
-		font-size: 0.85rem;
-		margin: 0;
+		justify-content: space-between;
+		gap: 20px;
+		font-size: 12px;
 	}
-	.status-dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: #34d399;
-		box-shadow: 0 0 8px #34d399;
-		flex-shrink: 0;
+	.footer-bottom a {
+		color: #c2b4e8;
 	}
-	.copyright {
-		color: #52525b;
-		font-size: 0.8rem;
-		margin: 0;
-	}
-
 	@media (max-width: 640px) {
-		.footer-inner {
+		.marketing-footer {
+			padding: 40px 24px 24px;
+		}
+		.footer-main {
 			flex-direction: column;
-			align-items: flex-start;
+			padding-bottom: 30px;
+			gap: 24px;
+		}
+		.footer-main nav {
+			gap: 24px;
+			flex-wrap: wrap;
+		}
+		.footer-bottom {
+			flex-wrap: wrap;
+		}
+		.footer-bottom > span:nth-child(2) {
+			display: none;
 		}
 	}
 </style>

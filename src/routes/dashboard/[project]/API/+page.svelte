@@ -1,5 +1,6 @@
 <script>
 	import { enhance } from '$app/forms';
+	import { onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -26,6 +27,8 @@
 	let isRevoking = $state(false);
 
 	let copied = $state(false);
+	let copyTimer;
+	onDestroy(() => clearTimeout(copyTimer));
 
 	function closeCreateDialog() {
 		createOpen = false;
@@ -42,10 +45,16 @@
 
 	async function copyKey() {
 		if (!form?.apiKey) return;
-		await navigator.clipboard.writeText(form.apiKey);
-		copied = true;
-		toast.success('Copied to clipboard');
-		setTimeout(() => (copied = false), 2000);
+		try {
+			await navigator.clipboard.writeText(form.apiKey);
+			copied = true;
+			toast.success('Copied to clipboard');
+			clearTimeout(copyTimer);
+			copyTimer = setTimeout(() => (copied = false), 2000);
+		} catch {
+			copied = false;
+			toast.error('Could not copy. Select the key and copy it manually.');
+		}
 	}
 
 	function submitCreate() {
@@ -86,16 +95,18 @@
 	}
 </script>
 
+<svelte:head><title>API keys — {data.project.name} — First Layer</title></svelte:head>
+
 <div class="max-w-3xl space-y-6">
-	<div class="flex items-center justify-between gap-4">
+	<div class="flex flex-wrap items-center justify-between gap-4">
 		<div>
-			<h1 class="text-2xl font-bold tracking-tight text-zinc-100">API Keys</h1>
+			<h1 class="text-2xl font-medium tracking-tight text-zinc-100">API Keys</h1>
 			<p class="text-zinc-400 text-sm mt-1">
 				Generate keys to authenticate requests to the First Layer API from your app.
 			</p>
 		</div>
 		<Button
-			class="bg-violet-600 hover:bg-violet-500 text-white gap-1.5 shrink-0"
+			class="bg-[#bba3f1] hover:bg-[#ccb6ff] text-[#21172d] gap-1.5 shrink-0"
 			onclick={() => (createOpen = true)}
 		>
 			<Plus class="h-4 w-4" />
@@ -112,7 +123,8 @@
 			<div class="flex gap-2">
 				<code
 					class="flex-1 rounded-lg bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-sm font-mono text-zinc-100 overflow-x-auto"
-				>{form.apiKey}</code>
+					>{form.apiKey}</code
+				>
 				<Button
 					variant="outline"
 					class="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-800 shrink-0 gap-1.5"
@@ -131,14 +143,19 @@
 	{/if}
 
 	{#await data.keys}
-		<div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 py-16 flex items-center justify-center">
+		<div
+			class="rounded-2xl border border-zinc-800 bg-zinc-900/30 py-16 flex items-center justify-center"
+		>
 			<LoaderCircle class="h-5 w-5 text-zinc-600 animate-spin" />
 		</div>
 	{:then keys}
 		{#if keys.length === 0}
 			<Empty.Root class="border border-dashed border-zinc-800 bg-zinc-900/30 rounded-2xl py-16">
 				<Empty.Header>
-					<Empty.Media variant="icon" class="bg-violet-500/10 border border-violet-500/20 text-violet-400">
+					<Empty.Media
+						variant="icon"
+						class="bg-violet-500/10 border border-violet-500/20 text-violet-400"
+					>
 						<KeyRound class="h-5 w-5" />
 					</Empty.Media>
 					<Empty.Title class="text-zinc-100">No API keys yet</Empty.Title>
@@ -147,7 +164,10 @@
 					</Empty.Description>
 				</Empty.Header>
 				<Empty.Content>
-					<Button class="bg-violet-600 hover:bg-violet-500 text-white gap-1.5" onclick={() => (createOpen = true)}>
+					<Button
+						class="bg-[#bba3f1] hover:bg-[#ccb6ff] text-[#21172d] gap-1.5"
+						onclick={() => (createOpen = true)}
+					>
 						<Plus class="h-4 w-4" />
 						Create key
 					</Button>
@@ -158,16 +178,22 @@
 				{#each keys as key (key.id)}
 					<li class="flex items-center justify-between gap-4 px-5 py-4">
 						<div class="min-w-0">
-							<div class="flex items-center gap-2">
+							<div class="flex flex-wrap items-center gap-2">
 								<span class="text-sm font-medium text-zinc-100 truncate">{key.name}</span>
 								{#if key.is_active}
-									<Badge variant="outline" class="border-emerald-500/30 text-emerald-400">Active</Badge>
+									<Badge variant="outline" class="border-emerald-500/30 text-emerald-400"
+										>Active</Badge
+									>
 								{:else}
 									<Badge variant="outline" class="border-zinc-700 text-zinc-500">Revoked</Badge>
 								{/if}
 							</div>
-							<p class="text-xs font-mono text-zinc-500 mt-1 truncate">{key.key_hint}</p>
-							<p class="text-xs text-zinc-600 mt-0.5">Created {formatDate(key.created_at)}</p>
+							<p class="text-xs font-mono text-zinc-500 mt-1 truncate">
+								{key.key_hint}
+							</p>
+							<p class="text-xs text-zinc-600 mt-0.5">
+								Created {formatDate(key.created_at)}
+							</p>
 						</div>
 						{#if key.is_active}
 							<Button
@@ -219,7 +245,11 @@
 				>
 					Cancel
 				</Button>
-				<Button type="submit" disabled={isCreating} class="bg-violet-600 hover:bg-violet-500 text-white">
+				<Button
+					type="submit"
+					disabled={isCreating}
+					class="bg-[#bba3f1] hover:bg-[#ccb6ff] text-[#21172d]"
+				>
 					{isCreating ? 'Creating...' : 'Create key'}
 				</Button>
 			</Dialog.Footer>

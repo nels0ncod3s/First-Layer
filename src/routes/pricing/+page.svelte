@@ -1,42 +1,42 @@
 <script>
-	import MarketingNav from "$lib/components/marketing/MarketingNav.svelte";
-	import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
+	import MarketingNav from '$lib/components/marketing/MarketingNav.svelte';
+	import MarketingFooter from '$lib/components/marketing/MarketingFooter.svelte';
 
 	// Placeholder numbers — swap these for your real pricing before launch.
 	const tiers = [
 		{
-			id: "free",
-			name: "Free",
-			price: "$0",
-			period: "/mo",
-			tagline: "For side projects and testing the waters.",
-			cta: "Start free",
-			href: "/signup",
+			id: 'free',
+			name: 'Free',
+			price: '$0',
+			period: '/mo',
+			tagline: 'For side projects and testing the waters.',
+			cta: 'Start free',
+			href: '/signup',
 			featured: false,
 			features: [
-				"Up to 3 projects",
-				"500 monthly active users",
-				"Email & Google sign-in",
-				"7-day log retention",
-				"Community support"
+				'Up to 3 projects',
+				'500 monthly active users',
+				'Email signup',
+				'7-day log retention',
+				'Community support'
 			]
 		},
 		{
-			id: "pro",
-			name: "Pro",
-			price: "$29",
-			period: "/mo",
-			tagline: "For products that are live and growing.",
-			cta: "Start free trial",
-			href: "/signup",
+			id: 'pro',
+			name: 'Pro',
+			price: '$29',
+			period: '/mo',
+			tagline: 'For products that are live and growing.',
+			cta: 'Start building free',
+			href: '/signup',
 			featured: true,
 			features: [
-				"Unlimited projects",
-				"10,000 monthly active users",
-				"All auth providers + passkeys",
-				"90-day log retention",
-				"Custom email domain",
-				"Priority support"
+				'Unlimited projects',
+				'10,000 monthly active users',
+				'More auth providers (planned)',
+				'90-day log retention',
+				'Custom email domain',
+				'Priority support'
 			]
 		}
 	];
@@ -55,14 +55,15 @@
 	<header class="hero">
 		<span class="badge">Pricing</span>
 		<h1>Simple pricing, <span class="grad">no surprises.</span></h1>
-		<p class="lede">Start free. Upgrade when you have real users to protect.</p>
+		<p class="lede">Start building for free. Explore the plans we’re working toward.</p>
+		<p class="pricing-note">Preview pricing · Paid plans and limits are not active yet.</p>
 	</header>
 
 	<section class="tiers">
 		{#each tiers as tier (tier.id)}
 			<div class="tier-card" class:featured={tier.featured}>
 				{#if tier.featured}
-					<span class="tier-tag">Most popular</span>
+					<span class="tier-tag">Planned</span>
 				{/if}
 				<h3>{tier.name}</h3>
 				<p class="tier-tagline">{tier.tagline}</p>
@@ -70,13 +71,23 @@
 					<span class="amount">{tier.price}</span>
 					<span class="period">{tier.period}</span>
 				</div>
-				<a class={tier.featured ? "btn-solid btn-lg" : "btn-outline btn-lg"} href={tier.href}>
+				<a class={tier.featured ? 'btn-solid btn-lg' : 'btn-outline btn-lg'} href={tier.href}>
 					{tier.cta}
 				</a>
 				<ul class="tier-features">
 					{#each tier.features as feature (feature)}
 						<li>
-							<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="15"
+								height="15"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg
+							>
 							{feature}
 						</li>
 					{/each}
@@ -90,7 +101,10 @@
 		<div class="faq-grid">
 			<div class="faq-item">
 				<h4>Can I switch plans later?</h4>
-				<p>Yes — upgrade or downgrade at any time. Changes take effect on your next billing cycle.</p>
+				<p>
+					Paid plan switching will be available when billing launches. For now, you can create a
+					free developer account.
+				</p>
 			</div>
 			<div class="faq-item">
 				<h4>What counts as a monthly active user?</h4>
@@ -98,11 +112,14 @@
 			</div>
 			<div class="faq-item">
 				<h4>Do you offer a free trial of Pro?</h4>
-				<p>Yes — 14 days, no card required to start.</p>
+				<p>Pro is a planned offering. Free developer accounts are available today.</p>
 			</div>
 			<div class="faq-item">
 				<h4>Need something custom?</h4>
-				<p>Reach out and we'll put together a plan that fits.</p>
+				<p>
+					Explore the documentation to see how project-based user management can fit your
+					application.
+				</p>
 			</div>
 		</div>
 	</section>
@@ -111,11 +128,17 @@
 </div>
 
 <style>
+	.pricing-note {
+		margin-top: 20px;
+		color: #bfaed5;
+		font-size: 12px;
+		line-height: 1.7;
+	}
 	:global(body) {
 		margin: 0;
-		background: #08080c;
+		background: #0c0b10;
 		color: #f3f4f6;
-		font-family: "Geist Variable", "Geist", system-ui, sans-serif;
+		font-family: 'Geist Variable', 'Geist', system-ui, sans-serif;
 	}
 	:global(*) {
 		box-sizing: border-box;
@@ -135,7 +158,11 @@
 		left: 0;
 		right: 0;
 		height: 480px;
-		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(124, 58, 237, 0.24), transparent 70%);
+		background: radial-gradient(
+			ellipse 70% 60% at 50% 0%,
+			rgba(187, 163, 241, 0.09),
+			transparent 70%
+		);
 		pointer-events: none;
 		z-index: 0;
 	}
@@ -149,17 +176,20 @@
 		border-radius: 10px;
 		font-weight: 600;
 		font-size: 0.9rem;
-		transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+		transition:
+			transform 0.15s ease,
+			background 0.15s ease,
+			border-color 0.15s ease;
 		cursor: pointer;
 		border: 1px solid transparent;
 	}
 	.btn-solid {
-		background: #7c3aed;
-		color: #fff;
+		background: #bba3f1;
+		color: #21172d;
 	}
 	.btn-solid:hover {
 		transform: translateY(-1px);
-		background: #8b5cf6;
+		background: #ccb6ff;
 		box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
 	}
 	.btn-outline {
@@ -234,8 +264,8 @@
 		position: absolute;
 		top: -0.7rem;
 		right: 1.5rem;
-		background: #7c3aed;
-		color: #fff;
+		background: #bba3f1;
+		color: #21172d;
 		font-size: 0.72rem;
 		font-weight: 600;
 		padding: 0.25rem 0.7rem;

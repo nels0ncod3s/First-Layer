@@ -1,161 +1,193 @@
 <script>
+	import { page } from '$app/state';
+	import BrandMark from '$lib/components/BrandMark.svelte';
+	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import Menu from '@lucide/svelte/icons/menu';
+	import X from '@lucide/svelte/icons/x';
 	let menuOpen = $state(false);
+	let menuButton;
+	const links = [
+		{ href: '/docs', label: 'Documentation' },
+		{ href: '/pricing', label: 'Pricing' },
+		{ href: '/changelog', label: 'Changelog' }
+	];
+	$effect(() => {
+		page.url.pathname;
+		menuOpen = false;
+	});
+	function onKeydown(event) {
+		if (event.key === 'Escape' && menuOpen) {
+			menuOpen = false;
+			menuButton?.focus();
+		}
+	}
 </script>
 
-<nav class="nav">
+<svelte:window onkeydown={onKeydown} />
+<nav class="marketing-nav" aria-label="Main navigation" data-sveltekit-preload-data="hover">
 	<div class="nav-inner">
-		<a class="brand" href="/">
-			<span class="brand-mark" aria-hidden="true">⌁</span>
-			First Layer
-		</a>
-
+		<a class="brand" href="/" aria-label="First Layer home"
+			><BrandMark /><span>first layer<span class="brand-period">.</span></span></a
+		>
 		<div class="nav-links">
-			<a href="/changelog">Changelog</a>
-			<a href="/docs">Docs</a>
-			<a href="/pricing">Pricing</a>
+			{#each links as link}<a
+					href={link.href}
+					aria-current={page.url.pathname === link.href ? 'page' : undefined}>{link.label}</a
+				>{/each}
 		</div>
-
 		<div class="nav-actions">
-			<a class="btn-ghost" href="/login">Log in</a>
-			<a class="btn-solid" href="/signup">Get started</a>
+			<a href="/login" class="login-link">Log in</a><a href="/signup" class="nav-cta"
+				>Start building <ArrowUpRight size={15} /></a
+			>
 		</div>
-
-		<button class="burger" aria-label="Toggle menu" onclick={() => (menuOpen = !menuOpen)}>
-			<span></span><span></span><span></span>
-		</button>
+		<button
+			bind:this={menuButton}
+			class="menu-toggle"
+			aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+			aria-expanded={menuOpen}
+			aria-controls="mobile-navigation"
+			onclick={() => (menuOpen = !menuOpen)}
+			>{#if menuOpen}<X size={23} />{:else}<Menu size={23} />{/if}</button
+		>
 	</div>
-
-	{#if menuOpen}
-		<div class="mobile-menu">
-			<a href="/changelog" onclick={() => (menuOpen = false)}>Changelog</a>
-			<a href="/docs" onclick={() => (menuOpen = false)}>Docs</a>
-			<a href="/pricing" onclick={() => (menuOpen = false)}>Pricing</a>
-			<a class="btn-ghost" href="/login">Log in</a>
-			<a class="btn-solid" href="/signup">Get started</a>
-		</div>
-	{/if}
+	{#if menuOpen}<div id="mobile-navigation" class="mobile-menu">
+			{#each links as link}<a href={link.href}>{link.label}<ArrowUpRight size={16} /></a>{/each}
+			<div class="mobile-actions">
+				<a href="/login">Log in</a><a class="nav-cta" href="/signup"
+					>Start building <ArrowUpRight size={16} /></a
+				>
+			</div>
+		</div>{/if}
 </nav>
 
 <style>
-	a {
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.btn-ghost,
-	.btn-solid,
-	.btn-outline {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.65rem 1.2rem;
-		border-radius: 10px;
-		font-weight: 600;
-		font-size: 0.9rem;
-		transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-		cursor: pointer;
-		border: 1px solid transparent;
-	}
-	.btn-ghost {
-		color: #d4d4d8;
-	}
-	.btn-ghost:hover {
-		color: #fff;
-	}
-	.btn-solid {
-		background: #7c3aed;
-		color: #fff;
-	}
-	.btn-solid:hover {
-		transform: translateY(-1px);
-		background: #7476f5;
-		box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
-	}
-
-	.nav {
+	.marketing-nav {
 		position: sticky;
 		top: 0;
 		z-index: 40;
-		backdrop-filter: blur(14px);
-		background: rgba(8, 8, 12, 0.72);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		background: #0c0b10ed;
+		backdrop-filter: blur(20px);
+		border-bottom: 1px solid #ffffff12;
+		color: #f2f0f7;
 	}
 	.nav-inner {
-		max-width: 1180px;
-		margin: 0 auto;
-		padding: 1rem 1.5rem;
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		max-width: 1280px;
+		margin: auto;
+		padding: 0 40px;
+		height: 80px;
+		display: flex;
 		align-items: center;
-		gap: 1.5rem;
+		justify-content: space-between;
+		gap: 32px;
 	}
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-weight: 700;
-		font-size: 1.05rem;
-		justify-self: start;
+		gap: 11px;
+		font-size: 23px;
+		font-weight: 650;
+		letter-spacing: -1px;
+		white-space: nowrap;
 	}
-	.brand-mark {
-		color: #a78bfa;
-		font-size: 1.2rem;
+	.brand :global(svg) {
+		color: #b7a2ff;
 	}
-	.nav-links {
-		display: flex;
-		gap: 2rem;
-		justify-self: center;
+	.brand-period {
+		color: #cff58c;
 	}
-	.nav-links a {
-		color: #9ca3af;
-		font-size: 0.92rem;
+	.nav-links,
+	.nav-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
-		transition: color 0.15s ease;
+		gap: 30px;
 	}
-	.nav-links a:hover {
+	.nav-links a,
+	.login-link {
+		font-size: 13px;
+		font-weight: 500;
+		color: #a9a5b4;
+		transition: color 0.2s;
+	}
+	.nav-links a:hover,
+	.nav-links a[aria-current],
+	.login-link:hover {
 		color: #fff;
 	}
 	.nav-actions {
-		display: flex;
-		gap: 0.75rem;
-		justify-self: end;
+		gap: 25px;
 	}
-	.burger {
+	.nav-cta {
+		display: inline-flex;
+		gap: 18px;
+		align-items: center;
+		justify-content: center;
+		background: #d7f99b;
+		color: #151a0e;
+		border-radius: 7px;
+		padding: 12px 18px;
+		font-size: 13px;
+		font-weight: 650;
+		transition:
+			background 0.2s,
+			transform 0.2s;
+	}
+	.nav-cta:hover {
+		background: #e5ffbd;
+		transform: translateY(-1px);
+	}
+	.menu-toggle {
 		display: none;
-		grid-column: 3;
-		justify-self: end;
-		flex-direction: column;
-		gap: 4px;
-		background: none;
-		border: none;
-		padding: 0.4rem;
-		cursor: pointer;
-	}
-	.burger span {
-		width: 20px;
-		height: 2px;
-		background: #f3f4f6;
+		padding: 10px;
+		color: #eee;
+		border: 1px solid #ffffff1a;
+		border-radius: 8px;
 	}
 	.mobile-menu {
-		display: none;
+		padding: 8px 24px 24px;
+		border-top: 1px solid #ffffff12;
 	}
-
-	@media (max-width: 860px) {
+	.mobile-menu > a {
+		display: flex;
+		justify-content: space-between;
+		padding: 16px 0;
+		border-bottom: 1px solid #ffffff12;
+		font-size: 15px;
+	}
+	.mobile-actions {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-top: 20px;
+	}
+	@media (min-width: 761px) {
+		.mobile-menu {
+			display: none;
+		}
+	}
+	@media (max-width: 940px) {
+		.nav-inner {
+			padding: 0 24px;
+		}
+		.nav-links {
+			gap: 20px;
+		}
+		.nav-actions {
+			gap: 16px;
+		}
+		.brand {
+			font-size: 21px;
+		}
+	}
+	@media (max-width: 760px) {
+		.nav-inner {
+			height: 70px;
+		}
 		.nav-links,
 		.nav-actions {
 			display: none;
 		}
-		.burger {
+		.menu-toggle {
 			display: flex;
-		}
-		.mobile-menu {
-			display: flex;
-			flex-direction: column;
-			gap: 1rem;
-			padding: 1rem 1.5rem 1.5rem;
-			border-top: 1px solid rgba(255, 255, 255, 0.08);
 		}
 	}
 </style>

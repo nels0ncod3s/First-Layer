@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 // data.project arrives from dashboard/[project]/+layout.server.js above
@@ -9,6 +9,7 @@ import { API_URL } from '$env/static/private';
 // transition on it.
 export const load = async ({ params, locals, fetch }) => {
 	const { session } = await locals.safeGetSession();
+	if (!session) throw redirect(303, '/login');
 
 	async function loadUsers() {
 		const res = await fetch(`${API_URL}/api/projects/${params.project}/users`, {

@@ -1,1031 +1,1405 @@
 <script>
-  // ============================================================
-  // First Layer — Auth-as-a-Service landing page
-  // Svelte 5 (runes mode). Drop into src/routes/+page.svelte
-  // ============================================================
-  import { scale } from "svelte/transition";
-  import { highlightCode } from "$lib/highlight.js";
-  import MarketingNav from "$lib/components/marketing/MarketingNav.svelte";
-  import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
-  import CopyButton from "$lib/components/CopyButton.svelte";
-  import KeyRound from "@lucide/svelte/icons/key-round";
-  import ShieldCheck from "@lucide/svelte/icons/shield-check";
-  import Zap from "@lucide/svelte/icons/zap";
-  import Puzzle from "@lucide/svelte/icons/puzzle";
-  import Terminal from "@lucide/svelte/icons/terminal";
+	import MarketingNav from '$lib/components/marketing/MarketingNav.svelte';
+	import MarketingFooter from '$lib/components/marketing/MarketingFooter.svelte';
+	import BrandMark from '$lib/components/BrandMark.svelte';
+	import CopyButton from '$lib/components/CopyButton.svelte';
+	import { highlightCode } from '$lib/highlight.js';
+	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import Check from '@lucide/svelte/icons/check';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Users from '@lucide/svelte/icons/users';
+	import KeyRound from '@lucide/svelte/icons/key-round';
+	import Layers from '@lucide/svelte/icons/layers';
+	import Terminal from '@lucide/svelte/icons/terminal';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	let previewTab = $state('Users');
+	let codeTab = $state('JavaScript');
+	const previewTabs = ['Users', 'API keys', 'Activity'];
+	const examples = [
+		{
+			name: 'Ada Okafor',
+			email: 'ada@example.com',
+			initials: 'AO',
+			color: 'lavender'
+		},
+		{
+			name: 'Alex Morgan',
+			email: 'alex@example.com',
+			initials: 'AM',
+			color: 'mint'
+		},
+		{
+			name: 'Sam Rivera',
+			email: 'sam@example.com',
+			initials: 'SR',
+			color: 'peach'
+		}
+	];
+	const snippets = {
+		JavaScript: `import { FirstLayer } from "firstlayer";
 
-  // --- Install command (hero + SDK section) ---------------------------
-  const installCommand = "npm install @firstlayer/sdk";
+// Run this on your server.
+const layer = new FirstLayer({
+  apiKey: process.env.FIRSTLAYER_API_KEY
+});
 
-  // --- Framework snippets ---------------------------------------------
-  // Usage of the published `firstlayer` npm package. The raw REST calls
-  // these wrap still live in full on the docs page (Quickstart / API
-  // reference) — this is just the ergonomic wrapper around them.
-  const frameworks = [
-    {
-      id: "js",
-      label: "JavaScript",
-      file: "auth.js",
-      code: `import { FirstLayer } from "firstlayer";
+const { user } = await layer.auth.signUp({
+  email: "ada@example.com",
+  password: "a-strong-unique-password"
+});
 
-const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" }); // Dashboard -> your project -> API
-
-async function signUp(email, password) {
-  const { user } = await firstlayer.auth.signUp({ email, password });
-  return user;
-}`,
-    },
-    {
-      id: "svelte",
-      label: "Svelte",
-      file: "+page.svelte",
-      code: `<script>
-  import { FirstLayer } from "firstlayer";
-
-  const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" });
-
-  let email = $state("");
-  let password = $state("");
-
-  async function signUp() {
-    const { user } = await firstlayer.auth.signUp({ email, password });
-    return user;
-  }
-<` + `/script>`,
-    },
-    {
-      id: "react",
-      label: "React",
-      file: "App.jsx",
-      code: `import { FirstLayer } from "firstlayer";
-
-const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" });
-
-async function signUp(email, password) {
-  const { user } = await firstlayer.auth.signUp({ email, password });
-  return user;
-}`,
-    },
-  ];
-
-  let activeId = $state("js");
-  let active = $derived(frameworks.find((f) => f.id === activeId));
-  let highlighted = $derived(highlightCode(active.code));
-
-  // --- Live authentication demo (signature element) — a clean, minimal
-  // "verify -> verified" motion instead of a typed-out fake login form.
-  // Loops on its own; respects prefers-reduced-motion by freezing on the
-  // "verified" frame instead of animating.
-  let authPhase = $state("verifying"); // verifying | verified
-
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  $effect(() => {
-    let cancelled = false;
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduceMotion) {
-      authPhase = "verified";
-      return;
-    }
-
-    (async () => {
-      while (!cancelled) {
-        authPhase = "verifying";
-        await wait(1800);
-        if (cancelled) return;
-
-        authPhase = "verified";
-        await wait(2800);
-        if (cancelled) return;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  });
-
-  // --- Scroll reveal ---
-  function reveal(node) {
-    node.classList.add("reveal");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("reveal-in");
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.15 },
-    );
-    observer.observe(node);
-    return {
-      destroy() {
-        observer.disconnect();
-      },
-    };
-  }
-
-  const logos = ["Voltra", "Kesho Pay", "Nimbus", "Ledger&Co", "Patchwork", "Orbital"];
+console.log(user.id);`,
+		'REST API': `curl -X POST \\
+  https://firstlayer-backend.pxxl.run/v1/auth/signup \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: $FIRSTLAYER_API_KEY" \\
+  -d '{
+    "email": "ada@example.com",
+    "password": "a-strong-unique-password"
+  }'`
+	};
+	const features = [
+		{
+			icon: Layers,
+			number: '01',
+			title: 'A home for every app.',
+			text: 'Keep each project’s users, settings, and credentials together. Switch projects without losing your place.'
+		},
+		{
+			icon: Users,
+			number: '02',
+			title: 'Know your users.',
+			text: 'See who has signed up. Manage accounts, block access, and keep your user directory organised.'
+		},
+		{
+			icon: KeyRound,
+			number: '03',
+			title: 'Keys under your control.',
+			text: 'Create named API keys for your integrations. Copy a new key once, and revoke it when you need to.'
+		},
+		{
+			icon: SlidersHorizontal,
+			number: '04',
+			title: 'Your workflow. Your UI.',
+			text: 'Use the JavaScript SDK or call the REST API from your server. Build the experience that fits your product.'
+		}
+	];
+	const faqs = [
+		{
+			q: 'Who is First Layer for?',
+			a: 'Developers building side projects, prototypes, and early products who want project-based user management and a straightforward API.'
+		},
+		{
+			q: 'What can I use today?',
+			a: 'Create projects, generate and revoke API keys, register and manage app users, and configure email signup. Google OAuth and magic links are planned and are marked as coming soon in the dashboard.'
+		},
+		{
+			q: 'Can I use it with my existing stack?',
+			a: 'The JavaScript SDK works from your server. The REST API can be called from any language that supports HTTP. Visit the docs for endpoints and examples.'
+		},
+		{
+			q: 'Where should I keep my API key?',
+			a: 'Keep project API keys in server environment variables. Never include a privileged key in a public browser bundle or commit it to your repository.'
+		}
+	];
+	function handleTabs(event, tabs, current, setTab, prefix) {
+		const index = tabs.indexOf(current);
+		let next;
+		if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+		if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+		if (event.key === 'Home') next = 0;
+		if (event.key === 'End') next = tabs.length - 1;
+		if (next !== undefined) {
+			event.preventDefault();
+			setTab(tabs[next]);
+			document.getElementById(`${prefix}-${next}`)?.focus();
+		}
+	}
 </script>
 
 <svelte:head>
-  <title>First Layer — Authentication that scales with your code</title>
-  <meta
-    name="description"
-    content="Secure, multi-tenant authentication, passkeys, and session management in under 5 lines of code."
-  />
+	<title>First Layer — A better foundation for your next big thing</title>
+	<meta
+		name="description"
+		content="Project-based user management, API keys, and a straightforward developer API. Build your product on First Layer."
+	/>
+	<meta name="theme-color" content="#0c0b10" />
 </svelte:head>
 
-<div class="page">
-  <div class="top-glow" aria-hidden="true"></div>
+<div class="landing">
+	<a href="#main-content" class="skip-link">Skip to content</a>
+	<MarketingNav />
+	<main id="main-content">
+		<section class="hero wrap">
+			<div class="hero-copy">
+				<div class="eyebrow">
+					<span class="tiny-dot"></span> THE FOUNDATION FOR WHAT’S NEXT
+				</div>
+				<h1>Your next<br />big thing.<br /><span>Starts here.</span></h1>
+				<p class="hero-description">
+					Give your users a place to belong.<br class="desktop-break" /> Manage accounts, projects, and
+					API keys in one thoughtfully simple layer.
+				</p>
+				<div class="hero-actions">
+					<a class="button button-lime" href="/signup"
+						>Build on First Layer <ArrowUpRight size={19} /></a
+					><a class="text-link" href="/docs">Explore the docs <ArrowRight size={17} /></a>
+				</div>
+				<div class="hero-note">
+					<Check size={14} /> Free to get started <span>·</span> Your interface, your rules
+				</div>
+			</div>
+			<div class="hero-visual">
+				<div class="visual-grid" aria-hidden="true"></div>
+				<div class="layer-outline outline-one" aria-hidden="true"></div>
+				<div class="layer-outline outline-two" aria-hidden="true"></div>
+				<div class="preview-window">
+					<div class="window-toolbar">
+						<span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span
+							>console.firstlayer</span
+						><span class="preview-label">PREVIEW</span>
+					</div>
+					<div class="preview-project">
+						<div class="project-emblem"><BrandMark size={24} /></div>
+						<div>
+							<span class="mini-label">YOUR PROJECT</span>
+							<h2>The next big thing</h2>
+						</div>
+						<ChevronDown size={16} />
+					</div>
+					<div class="preview-tabs" role="tablist" aria-label="Product preview">
+						{#each previewTabs as tab, i}<button
+								id={`preview-${i}`}
+								role="tab"
+								aria-selected={previewTab === tab}
+								aria-controls="preview-panel"
+								tabindex={previewTab === tab ? 0 : -1}
+								onclick={() => (previewTab = tab)}
+								onkeydown={(e) =>
+									handleTabs(
+										e,
+										previewTabs,
+										previewTab,
+										(value) => (previewTab = value),
+										'preview'
+									)}
+								>{tab === 'Users' ? 'Users' : tab}<span
+									>{tab === 'Users' ? '3' : tab === 'API keys' ? '2' : '3'}</span
+								></button
+							>{/each}
+					</div>
+					<div
+						class="preview-content"
+						id="preview-panel"
+						role="tabpanel"
+						aria-labelledby={`preview-${previewTabs.indexOf(previewTab)}`}
+						tabindex="0"
+					>
+						{#if previewTab === 'Users'}
+							<div class="preview-heading">
+								<span>Your people.</span><span class="muted">3 example users</span>
+							</div>
+							{#each examples as user}<div class="example-row">
+									<span class="avatar {user.color}">{user.initials}</span>
+									<div>
+										<strong>{user.name}</strong><span>{user.email}</span>
+									</div>
+									<span class="active-badge"><i></i> Active</span>
+								</div>{/each}
+						{:else if previewTab === 'API keys'}
+							<div class="preview-heading">
+								<span>Your connections.</span><KeyRound size={17} />
+							</div>
+							{#each ['Production server', 'Development'] as key}<div class="example-row">
+									<span class="avatar lavender"><KeyRound size={18} /></span>
+									<div>
+										<strong>{key}</strong><span class="mono">fl_••••••••••••</span>
+									</div>
+									<span class="active-badge"><i></i> Active</span>
+								</div>{/each}
+							<p class="preview-tip">Named keys. Clear ownership. Easy revocation.</p>
+						{:else}
+							<div class="preview-heading">
+								<span>The latest.</span><span class="muted">Example activity</span>
+							</div>
+							{#each ['Ada joined your project', 'Production API key created', 'Alex joined your project'] as event, i}<div
+									class="event-row"
+								>
+									<span class="event-dot"></span>
+									<div>
+										<strong>{event}</strong><span>{i + 1} minute{i ? 's' : ''} ago</span>
+									</div>
+									<Check size={15} />
+								</div>{/each}
+						{/if}
+					</div>
+					<div class="preview-footer">
+						<span><span class="tiny-dot"></span> One project. Everything connected.</span><Layers
+							size={15}
+						/>
+					</div>
+				</div>
+				<div class="connection-chip">
+					<span class="chip-icon"><Check size={16} /></span>
+					<div>
+						<strong>One less thing to build.</strong><span>More room for your next idea.</span>
+					</div>
+					<span class="chip-spark">✳</span>
+				</div>
+				<div class="visual-caption">
+					<span>01 / THE FIRST LAYER</span><span>↓ YOUR PRODUCT GOES HERE</span>
+				</div>
+			</div>
+		</section>
 
-  <!-- NAV -->
-  <MarketingNav />
+		<div class="stack-band wrap">
+			<span>Fits into your stack.</span>
+			<div>
+				<span><span class="stack-symbol">JS</span> JavaScript</span><span
+					><span class="stack-symbol react">✳</span> React</span
+				><span><span class="stack-symbol svelte">S</span> SvelteKit</span><span
+					><Terminal size={20} /> Node.js</span
+				><span><span class="stack-symbol api">&#123; &#125;</span> REST API</span>
+			</div>
+		</div>
 
-  <!-- HERO -->
-  <header class="hero">
-    <div class="hero-grid" aria-hidden="true"></div>
+		<section class="features wrap" id="platform">
+			<div class="section-heading">
+				<div>
+					<span class="eyebrow">LESS FRICTION. MORE BUILDING.</span>
+					<h2>A little less infrastructure.<br />A lot more possibility.</h2>
+				</div>
+				<p>
+					Your app deserves your attention.<br />Keep the account management in one place.
+				</p>
+			</div>
+			<div class="feature-grid">
+				{#each features as feature}<article class="feature-card">
+						<div class="feature-top">
+							<span class="feature-icon"><feature.icon size={23} strokeWidth={1.5} /></span><span
+								class="feature-number">{feature.number}</span
+							>
+						</div>
+						<h3>{feature.title}</h3>
+						<p>{feature.text}</p>
+					</article>{/each}
+			</div>
+		</section>
 
-    <div class="hero-content">
-      <span class="badge">Introducing v2.0 — enterprise-grade speed</span>
+		<section class="integration wrap" id="integration">
+			<div class="integration-copy">
+				<span class="eyebrow">FROM IDEA TO FIRST USER</span>
+				<h2>Small setup.<br /><span>Big head start.</span></h2>
+				<p>
+					No new way of thinking required. Create a project, get a key, and make your first request.
+				</p>
+				<ol class="setup-list">
+					<li>
+						<span>01</span>
+						<div>
+							<strong>Create your project</strong>
+							<p>A dedicated space for your app’s users.</p>
+						</div>
+					</li>
+					<li>
+						<span>02</span>
+						<div>
+							<strong>Connect your server</strong>
+							<p>Install the SDK and add your API key.</p>
+						</div>
+					</li>
+					<li>
+						<span>03</span>
+						<div>
+							<strong>Meet your first user</strong>
+							<p>Make a request. See it in your dashboard.</p>
+						</div>
+					</li>
+				</ol>
+				<a href="/docs#quickstart" class="text-link"
+					>Follow the quickstart <ArrowRight size={17} /></a
+				>
+			</div>
+			<div class="code-card">
+				<div class="code-top">
+					<span class="code-language">YOUR FIRST REQUEST</span><span
+						class="code-top-dot"
+						aria-hidden="true"
+					></span>
+				</div>
+				<div class="code-tabs" role="tablist" aria-label="Integration examples">
+					{#each Object.keys(snippets) as tab, i}<button
+							id={`code-${i}`}
+							role="tab"
+							aria-selected={codeTab === tab}
+							aria-controls="code-panel"
+							tabindex={codeTab === tab ? 0 : -1}
+							onclick={() => (codeTab = tab)}
+							onkeydown={(e) =>
+								handleTabs(e, Object.keys(snippets), codeTab, (value) => (codeTab = value), 'code')}
+							>{tab}</button
+						>{/each}<CopyButton text={snippets[codeTab]} label="Copy integration example" />
+				</div>
+				<div
+					id="code-panel"
+					role="tabpanel"
+					aria-labelledby={`code-${Object.keys(snippets).indexOf(codeTab)}`}
+					tabindex="0"
+				>
+					<pre><code>{@html highlightCode(snippets[codeTab])}</code></pre>
+				</div>
+				<div class="code-install">
+					<Terminal size={16} /><code>npm install firstlayer</code><CopyButton
+						text="npm install firstlayer"
+						label="Copy install command"
+					/>
+				</div>
+				<div class="code-footnote">
+					<span class="tiny-dot"></span> Server-side example · Keep your API key private
+				</div>
+			</div>
+		</section>
 
-      <h1>
-        Authentication that scales
-        <span class="grad">with your code, not your budget.</span>
-      </h1>
+		<section class="manifesto">
+			<div class="wrap manifesto-inner">
+				<span class="eyebrow">BUILT FOR THE BUILDERS</span>
+				<h2>
+					You bring the idea.<br />We’ll bring <span>the first layer.</span>
+				</h2>
+				<div class="manifesto-bottom">
+					<p>
+						Side project. New venture. That idea you can’t shake.<br />Start with a foundation that
+						stays out of your way.
+					</p>
+					<a href="/signup" class="button button-dark">Let’s build it <ArrowUpRight size={20} /></a>
+				</div>
+				<div class="manifesto-art" aria-hidden="true">
+					<span></span><span></span><span></span>
+				</div>
+			</div>
+		</section>
 
-      <p class="lede">
-        Multi-tenant auth, passkeys, and session management in under five
-        lines of code. Built for the way modern teams actually ship.
-      </p>
-
-      <div class="cta-row">
-        <a class="btn-solid btn-lg" href="/signup">Start free — deploy in 5m</a>
-
-        <div class="install-pill">
-          <span class="install-prompt" aria-hidden="true">$</span>
-          <code>{installCommand}</code>
-          <CopyButton text={installCommand} label="Copy install command" variant="round" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Signature element: a clean, minimal "verifying -> verified" motion
-         that reads as authentication at a glance, without a gimmicky typed
-         login form. -->
-    <div class="auth-orb" use:reveal>
-      <div class="window-chrome">
-        <span></span><span></span><span></span>
-        <span class="chrome-title">authentication · live</span>
-      </div>
-
-      <div class="orb-body">
-        <div class="orb-rings" aria-hidden="true">
-          <span class="orb-ring"></span>
-          <span class="orb-ring"></span>
-          <span class="orb-ring"></span>
-
-          <div class="orb-core" class:verified={authPhase === "verified"}>
-            {#key authPhase}
-              <div class="orb-icon" in:scale={{ duration: 350, start: 0.6 }} out:scale={{ duration: 200, start: 0.6 }}>
-                {#if authPhase === "verified"}
-                  <ShieldCheck class="h-7 w-7" />
-                {:else}
-                  <KeyRound class="h-7 w-7" />
-                {/if}
-              </div>
-            {/key}
-          </div>
-        </div>
-
-        <div class="orb-status">
-          {#if authPhase === "verified"}
-            <span class="status-dot"></span>
-            <span>Session verified · issued in 42ms</span>
-          {:else}
-            <span class="orb-status-dot-pulse"></span>
-            <span>Verifying request…</span>
-          {/if}
-        </div>
-
-        <!-- Always rendered (space reserved either way) so the page below
-             the hero doesn't shift up/down as this cycles in and out. -->
-        <div class="orb-token" class:visible={authPhase === "verified"}>sess_2f8a9c4b7e21</div>
-      </div>
-    </div>
-  </header>
-
-  <!-- SDK SECTION -->
-  <section class="sdk" use:reveal>
-    <div class="sdk-layout">
-      <div class="sdk-text">
-        <h2>Built by developers, for developers.</h2>
-        <p>
-          One npm package that works the same way in every JavaScript
-          framework. Install it once, then pick a framework below to see
-          it in a few lines.
-        </p>
-      </div>
-
-      <div class="sdk-code-flat">
-        <div class="sdk-tabs" role="tablist">
-          {#each frameworks as f}
-            <button
-              role="tab"
-              aria-selected={activeId === f.id}
-              class="sdk-tab"
-              class:active={activeId === f.id}
-              onclick={() => (activeId = f.id)}
-            >
-              {f.label}
-            </button>
-          {/each}
-        </div>
-
-        <div class="code-window">
-          <div class="flat-header">
-            <span class="flat-filename">{active.file}</span>
-            <CopyButton text={active.code} label="Copy code" />
-          </div>
-          <pre class="code-body"><code>{@html highlighted}</code></pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PILLARS -->
-  <section class="pillars" use:reveal>
-    <div class="pillars-head">
-      <span class="pillars-eyebrow">Why First Layer</span>
-      <h2>Everything you need, nothing you don't.</h2>
-    </div>
-
-    <div class="bento-grid">
-      <article class="bento-tile tile-speed">
-        <div class="tile-glow" aria-hidden="true"></div>
-        <div class="tile-icon"><Zap class="h-5 w-5" /></div>
-        <div class="tile-stat">&lt;5ms</div>
-        <h3>Edge-native speed</h3>
-        <p>JWTs verified at the edge, in every region your users actually are — no cold starts, no round trip to one origin server.</p>
-      </article>
-
-      <article class="bento-tile tile-security">
-        <div class="tile-icon"><ShieldCheck class="h-5 w-5" /></div>
-        <span class="tile-tag">SOC2</span>
-        <h3>Total security</h3>
-        <p>Phishing-resistant passkeys and MFA on by default — not bolted on.</p>
-      </article>
-
-      <article class="bento-tile tile-customizable">
-        <div class="tile-icon"><Puzzle class="h-5 w-5" /></div>
-        <span class="tile-tag">headless / UI</span>
-        <h3>Fully customizable</h3>
-        <p>Headless APIs when you want full control, themed components when you don't.</p>
-      </article>
-
-      <article class="bento-tile tile-rest">
-        <div class="tile-icon"><Terminal class="h-5 w-5" /></div>
-        <span class="tile-tag">REST</span>
-        <h3>REST underneath</h3>
-        <p>The npm package is a thin wrapper — reach for the same REST endpoints directly from any other language, anytime.</p>
-      </article>
-    </div>
-  </section>
-
-  <!-- SOCIAL PROOF -->
-  <section class="proof" use:reveal>
-    <p class="proof-label">Trusted by teams shipping fast</p>
-    <div class="logo-wall">
-      {#each logos as logo}
-        <span class="logo-item">{logo}</span>
-      {/each}
-    </div>
-  </section>
-
-  <!-- FINAL CTA -->
-  <section class="final-cta" use:reveal>
-    <div class="final-cta-inner">
-      <h2>Ready to secure your application?</h2>
-      <p>Create a free account and generate your first API key in minutes. No credit card required.</p>
-      <a class="btn-solid btn-lg" href="/signup">Get started free</a>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <MarketingFooter />
+		<section class="faq wrap">
+			<div>
+				<span class="eyebrow">GOOD QUESTIONS</span>
+				<h2>A little clarity<br />before you start.</h2>
+				<a href="/docs" class="text-link">More in the docs <ArrowUpRight size={16} /></a>
+			</div>
+			<div class="faq-list">
+				{#each faqs as faq}<details>
+						<summary>{faq.q}<Plus size={19} /></summary>
+						<p>{faq.a}</p>
+					</details>{/each}
+			</div>
+		</section>
+	</main>
+	<MarketingFooter />
 </div>
 
 <style>
-  :global(body) {
-    margin: 0;
-    background: #08080c;
-    color: #f3f4f6;
-    font-family: "Geist Variable", "Geist", system-ui, sans-serif;
-  }
-
-  :global(*) {
-    box-sizing: border-box;
-  }
-
-  .page {
-    position: relative;
-    overflow-x: clip;
-  }
-
-  /* ---------- top radial glow ---------- */
-  .top-glow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 560px;
-    background: radial-gradient(
-      ellipse 70% 60% at 50% 0%,
-      rgba(124, 58, 237, 0.28),
-      transparent 70%
-    );
-    /* Belt-and-suspenders on top of the gradient's own fade: guarantees
-       this never has a hard bottom edge that could show through into
-       whatever section follows the hero, regardless of hero height. */
-    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  @media (max-width: 640px) {
-    .top-glow {
-      height: 420px;
-      background: radial-gradient(
-        ellipse 130% 55% at 50% 0%,
-        rgba(124, 58, 237, 0.38),
-        transparent 72%
-      );
-    }
-  }
-
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  /* ---------- shared buttons ---------- */
-  .btn-solid,
-  .btn-outline {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.65rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-    cursor: pointer;
-    border: 1px solid transparent;
-  }
-  .btn-solid {
-    background: #7c3aed;
-    color: #fff;
-  }
-  .btn-solid:hover {
-    transform: translateY(-1px);
-    background: #8b5cf6;
-    box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
-  }
-  .btn-outline {
-    border-color: rgba(255, 255, 255, 0.16);
-    color: #f3f4f6;
-  }
-  .btn-outline:hover {
-    border-color: rgba(255, 255, 255, 0.35);
-  }
-  .btn-lg {
-    padding: 0.85rem 1.6rem;
-    font-size: 1rem;
-  }
-
-  /* ---------- hero ---------- */
-  .hero {
-    position: relative;
-    padding: 3rem 1.5rem 5rem;
-    max-width: 1180px;
-    margin: 0 auto;
-  }
-  .hero-grid {
-    position: absolute;
-    inset: -2rem 0 auto 0;
-    height: 620px;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 42px 42px;
-    -webkit-mask-image: radial-gradient(circle at 50% 15%, black 0%, transparent 65%);
-    mask-image: radial-gradient(circle at 50% 15%, black 0%, transparent 65%);
-    z-index: -1;
-  }
-  .hero-content {
-    max-width: 760px;
-    margin: 0 auto;
-    text-align: center;
-  }
-  .badge {
-    display: inline-block;
-    padding: 0.4rem 0.95rem;
-    border: 1px solid rgba(124, 58, 237, 0.35);
-    background: rgba(124, 58, 237, 0.1);
-    border-radius: 999px;
-    color: #c4b5fd;
-    font-size: 0.82rem;
-    margin-bottom: 1.75rem;
-  }
-  h1 {
-    font-size: clamp(2.4rem, 5.4vw, 4.2rem);
-    line-height: 1.08;
-    margin: 0 0 1.4rem;
-    letter-spacing: -0.02em;
-  }
-  .grad {
-    display: block;
-    background: linear-gradient(120deg, #fff, #c4b5fd 60%, #a78bfa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .lede {
-    color: #9ca3af;
-    font-size: 1.1rem;
-    max-width: 560px;
-    margin: 0 auto 2.25rem;
-    line-height: 1.6;
-  }
-  .cta-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 3rem;
-  }
-
-  /* npm install pill — sits next to the primary CTA so the hero gains
-     a copyable install command without adding a whole extra row. */
-  .install-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.65rem;
-    background: #12121a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
-    padding: 0.5rem 0.5rem 0.5rem 1.15rem;
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    font-size: 0.88rem;
-    color: #d4d4d8;
-  }
-  .install-prompt {
-    color: #a78bfa;
-    font-weight: 600;
-  }
-  .install-pill code {
-    background: none;
-    padding: 0;
-    color: #d4d4d8;
-    white-space: nowrap;
-  }
-  @media (max-width: 400px) {
-    .install-pill {
-      font-size: 0.78rem;
-      padding: 0.45rem 0.45rem 0.45rem 1rem;
-    }
-  }
-
-  /* ---------- signature auth orb ---------- */
-  .auth-orb {
-    max-width: 640px;
-    margin: 0 auto;
-    background: #12121a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
-  }
-  .window-chrome {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.85rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .window-chrome span {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #3f3f46;
-  }
-  .window-chrome span:nth-child(1) {
-    background: #f87171;
-  }
-  .window-chrome span:nth-child(2) {
-    background: #fbbf24;
-  }
-  .window-chrome span:nth-child(3) {
-    background: #34d399;
-  }
-  .chrome-title {
-    margin-left: 0.5rem;
-    color: #71717a;
-    font-size: 0.78rem;
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #34d399;
-    box-shadow: 0 0 8px #34d399;
-    flex-shrink: 0;
-  }
-
-  .orb-body {
-    padding: 3rem 1.75rem 2.75rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .orb-rings {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .orb-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1px solid rgba(124, 58, 237, 0.35);
-    animation: ring-pulse 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-  }
-  .orb-ring:nth-child(2) {
-    animation-delay: 0.9s;
-  }
-  .orb-ring:nth-child(3) {
-    animation-delay: 1.8s;
-  }
-  @keyframes ring-pulse {
-    0% {
-      transform: scale(0.5);
-      opacity: 0;
-    }
-    15% {
-      opacity: 0.5;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 0;
-    }
-  }
-  .orb-core {
-    position: relative;
-    z-index: 1;
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: rgba(124, 58, 237, 0.12);
-    border: 1px solid rgba(124, 58, 237, 0.4);
-    color: #c4b5fd;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
-  }
-  .orb-core.verified {
-    background: rgba(52, 211, 153, 0.14);
-    border-color: rgba(52, 211, 153, 0.5);
-    color: #34d399;
-    box-shadow: 0 0 24px rgba(52, 211, 153, 0.35);
-  }
-  .orb-icon {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .orb-status {
-    margin-top: 1.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    color: #9ca3af;
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    font-size: 0.8rem;
-  }
-  .orb-status-dot-pulse {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #a78bfa;
-    flex-shrink: 0;
-    animation: pulse-dot 1.2s ease-in-out infinite;
-  }
-  @keyframes pulse-dot {
-    0%,
-    100% {
-      opacity: 0.25;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-  .orb-token {
-    margin-top: 0.85rem;
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    font-size: 0.72rem;
-    color: #52525b;
-    letter-spacing: 0.02em;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-  }
-  .orb-token.visible {
-    opacity: 1;
-  }
-
-  /* ---------- sdk section ---------- */
-  .sdk {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem 5rem;
-  }
-  .sdk-layout {
-    display: grid;
-    /* minmax(0, ...) on both tracks — same fix as the docs page: without
-       it these items refuse to shrink below the code block's intrinsic
-       width and .page's overflow-x: clip silently cuts off the excess
-       instead of the code block's own overflow-x: auto handling it. */
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-    gap: 3rem;
-    align-items: center;
-  }
-  .sdk-text h2 {
-    font-size: clamp(1.8rem, 3.4vw, 2.4rem);
-    margin: 0 0 0.9rem;
-  }
-  .sdk-text p {
-    color: #9ca3af;
-    line-height: 1.6;
-    max-width: 420px;
-  }
-  .sdk-code-flat {
-    background: #12121a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    overflow: hidden;
-  }
-  .sdk-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .sdk-tab {
-    background: none;
-    border: none;
-    color: #9ca3af;
-    padding: 0.55rem 0.95rem;
-    border-radius: 8px;
-    font-size: 0.88rem;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-  .sdk-tab:hover {
-    color: #fff;
-  }
-  .sdk-tab.active {
-    background: rgba(124, 58, 237, 0.16);
-    color: #c4b5fd;
-  }
-  .code-window {
-    display: flex;
-    flex-direction: column;
-  }
-  .flat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.65rem 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .flat-filename {
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    font-size: 0.78rem;
-    color: #71717a;
-  }
-  .code-body {
-    margin: 0;
-    padding: 1.75rem;
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    font-size: 0.88rem;
-    line-height: 1.7;
-    color: #d4d4d8;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    /* Scroll-shadow affordance — see docs page for the full explanation. */
-    background-image:
-      linear-gradient(to right, #12121a, #12121a),
-      linear-gradient(to right, #12121a, #12121a),
-      linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)),
-      linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
-    background-position: left center, right center, left center, right center;
-    background-repeat: no-repeat;
-    background-color: #12121a;
-    background-size: 24px 100%, 24px 100%, 12px 100%, 12px 100%;
-    background-attachment: local, local, scroll, scroll;
-  }
-  @media (max-width: 640px) {
-    .code-body {
-      font-size: 0.78rem;
-      padding: 1.25rem;
-    }
-  }
-  .code-body :global(.tok-keyword) {
-    color: #569cd6;
-  }
-  .code-body :global(.tok-string) {
-    color: #ce9178;
-  }
-  .code-body :global(.tok-comment) {
-    color: #6a9955;
-    font-style: italic;
-  }
-  .code-body :global(.tok-number) {
-    color: #b5cea8;
-  }
-  .code-body :global(.tok-function) {
-    color: #dcdcaa;
-  }
-  .code-body :global(.tok-type) {
-    color: #4ec9b0;
-  }
-
-  @media (max-width: 860px) {
-    .sdk-layout {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 2rem;
-    }
-    .sdk-text p {
-      max-width: none;
-    }
-  }
-
-  /* ---------- pillars / bento grid ---------- */
-  .pillars {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 1rem 1.5rem 5rem;
-  }
-  .pillars-head {
-    max-width: 560px;
-    margin-bottom: 2.25rem;
-  }
-  .pillars-eyebrow {
-    display: inline-block;
-    color: #22d3ee;
-    font-size: 0.78rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.65rem;
-  }
-  .pillars-head h2 {
-    font-size: clamp(1.6rem, 3vw, 2.1rem);
-    margin: 0;
-  }
-
-  .bento-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-areas:
-      "speed security customizable"
-      "speed rest rest";
-    gap: 1.25rem;
-  }
-  .bento-tile {
-    position: relative;
-    background: #12121a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    padding: 1.9rem;
-    overflow: hidden;
-    transition: border-color 0.25s ease, transform 0.25s ease;
-  }
-  .bento-tile:hover {
-    border-color: rgba(139, 92, 246, 0.5);
-    transform: translateY(-3px);
-  }
-  .tile-icon {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 10px;
-    background: rgba(139, 92, 246, 0.14);
-    border: 1px solid rgba(139, 92, 246, 0.32);
-    color: #c4b5fd;
-    margin-bottom: 1rem;
-  }
-  .tile-tag {
-    position: absolute;
-    top: 1.9rem;
-    right: 1.9rem;
-    font-family: "Geist Mono Variable", "Geist Mono", monospace;
-    font-size: 0.72rem;
-    color: #22d3ee;
-    border: 1px solid rgba(34, 211, 238, 0.3);
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-  }
-  .bento-tile h3 {
-    position: relative;
-    z-index: 1;
-    margin: 0 0 0.55rem;
-    font-size: 1.12rem;
-  }
-  .bento-tile p {
-    position: relative;
-    z-index: 1;
-    margin: 0;
-    color: #9ca3af;
-    line-height: 1.6;
-    font-size: 0.92rem;
-    max-width: 34ch;
-  }
-
-  .tile-speed {
-    grid-area: speed;
-    background:
-      radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.18), transparent 60%),
-      #12121a;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    min-height: 280px;
-  }
-  .tile-glow {
-    position: absolute;
-    inset: -25% -30% auto auto;
-    width: 260px;
-    height: 260px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent 70%);
-    pointer-events: none;
-  }
-  .tile-stat {
-    position: relative;
-    z-index: 1;
-    font-size: 2.75rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    background: linear-gradient(120deg, #fff, #c4b5fd);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin: 1.5rem 0 0.6rem;
-  }
-
-  .tile-security {
-    grid-area: security;
-  }
-  .tile-customizable {
-    grid-area: customizable;
-  }
-  .tile-rest {
-    grid-area: rest;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .tile-rest p {
-    max-width: 46ch;
-  }
-
-  @media (max-width: 780px) {
-    .bento-grid {
-      grid-template-columns: 1fr;
-      grid-template-areas: none;
-    }
-    .tile-speed,
-    .tile-security,
-    .tile-customizable,
-    .tile-rest {
-      grid-area: auto;
-    }
-    .tile-speed {
-      min-height: 0;
-    }
-  }
-
-  /* ---------- social proof ---------- */
-  .proof {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 1rem 1.5rem 5rem;
-    text-align: center;
-  }
-  .proof-label {
-    color: #71717a;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 1.75rem;
-  }
-  .logo-wall {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 2.5rem 3.5rem;
-    padding: 0 1rem;
-  }
-  .logo-item {
-    color: #52525b;
-    font-weight: 700;
-    font-size: 1.05rem;
-    letter-spacing: 0.02em;
-    filter: grayscale(1);
-    transition: color 0.2s ease;
-  }
-  .logo-item:hover {
-    color: #a1a1aa;
-  }
-
-  /* ---------- final cta ---------- */
-  .final-cta {
-    margin: 0 1.5rem 5rem;
-    max-width: 1180px;
-    margin-inline: auto;
-    border-radius: 24px;
-    background: #14101f;
-    border: 1px solid rgba(139, 92, 246, 0.25);
-    padding: 4rem 2rem;
-    text-align: center;
-  }
-  .final-cta-inner h2 {
-    font-size: clamp(1.7rem, 3.2vw, 2.3rem);
-    margin: 0 0 0.6rem;
-  }
-  .final-cta-inner p {
-    color: #9ca3af;
-    margin: 0 0 2rem;
-  }
-
-  @media (max-width: 640px) {
-    .final-cta {
-      margin: 0 1rem 3.5rem;
-      padding: 2.75rem 1.25rem;
-      border-radius: 20px;
-    }
-  }
-
-  /* ---------- scroll reveal ---------- */
-  :global(.reveal) {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  :global(.reveal-in) {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(.reveal) {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
-    .orb-ring {
-      animation: none;
-      opacity: 0;
-    }
-    .orb-status-dot-pulse {
-      animation: none;
-    }
-  }
+	.landing {
+		background: #0c0b10;
+		color: #eeeaf5;
+		overflow: clip;
+	}
+	.wrap {
+		width: 100%;
+		max-width: 1280px;
+		padding-inline: 40px;
+		margin-inline: auto;
+	}
+	.eyebrow {
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 1.8px;
+		color: #b2a6cd;
+		display: flex;
+		align-items: center;
+		gap: 9px;
+	}
+	.tiny-dot {
+		display: inline-block;
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: #d2f691;
+		flex-shrink: 0;
+	}
+	.hero {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 20px;
+		align-items: center;
+		padding-top: 84px;
+		padding-bottom: 88px;
+		min-height: 720px;
+	}
+	.hero h1 {
+		font-size: clamp(64px, 6.9vw, 92px);
+		line-height: 1.01;
+		font-weight: 550;
+		letter-spacing: -5px;
+		margin: 30px 0 26px;
+	}
+	.hero h1 > span {
+		color: #bca6ff;
+	}
+	.hero-description {
+		color: #aaa4b7;
+		font-size: 16px;
+		line-height: 1.85;
+		max-width: 420px;
+	}
+	.hero-actions {
+		display: flex;
+		align-items: center;
+		gap: 27px;
+		margin: 31px 0 22px;
+	}
+	.button {
+		display: inline-flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 24px;
+		border-radius: 7px;
+		padding: 16px 21px;
+		font-size: 13px;
+		font-weight: 650;
+		transition:
+			transform 0.2s,
+			background 0.2s;
+	}
+	.button:hover {
+		transform: translateY(-2px);
+	}
+	.button-lime {
+		background: #d7f99b;
+		color: #171e0e;
+	}
+	.button-lime:hover {
+		background: #e6ffbc;
+	}
+	.text-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 13px;
+		font-weight: 500;
+		color: #d0cadc;
+	}
+	.text-link:hover {
+		color: #fff;
+	}
+	.hero-note {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 11px;
+		color: #9e97ac;
+	}
+	.hero-note :global(svg) {
+		color: #d7f99b;
+	}
+	.hero-note > span {
+		padding-inline: 3px;
+		color: #575060;
+	}
+	.hero-visual {
+		position: relative;
+		padding: 45px 0 55px 35px;
+		min-width: 0;
+	}
+	.visual-grid {
+		position: absolute;
+		inset: -45px -100px -20px -30px;
+		background-image:
+			linear-gradient(#a691da0b 1px, transparent 1px),
+			linear-gradient(90deg, #a691da0b 1px, transparent 1px);
+		background-size: 46px 46px;
+		mask-image: radial-gradient(ellipse, #000 30%, transparent 70%);
+	}
+	.hero-visual:before {
+		content: '';
+		position: absolute;
+		inset: 0 -50px -30px;
+		background: radial-gradient(ellipse at 50% 45%, #9b67ea27, transparent 67%);
+		pointer-events: none;
+	}
+	.layer-outline {
+		position: absolute;
+		border: 1px solid #8e73c52b;
+		border-radius: 15px;
+		inset: 50px 0 90px 35px;
+		transform: rotate(-7deg) translate(-16px, 7px);
+		background: #17112050;
+	}
+	.outline-two {
+		transform: rotate(5deg) translate(8px, -14px);
+		border-color: #c1a1fa20;
+	}
+	.preview-window {
+		position: relative;
+		background: linear-gradient(130deg, #1f192b, #14121c 80%);
+		border: 1px solid #a792d44a;
+		border-radius: 12px;
+		box-shadow: 0 40px 100px #0006;
+		transform: rotate(-2deg);
+	}
+	.window-toolbar {
+		height: 41px;
+		border-bottom: 1px solid #ffffff0e;
+		display: flex;
+		align-items: center;
+		gap: 13px;
+		padding: 0 18px;
+		font-family: monospace;
+		font-size: 9px;
+		color: #857c96;
+	}
+	.window-dots {
+		display: flex;
+		gap: 4px;
+	}
+	.window-dots i {
+		height: 5px;
+		width: 5px;
+		border-radius: 50%;
+		background: #695e7b;
+	}
+	.preview-label {
+		margin-left: auto;
+		font-size: 8px;
+		letter-spacing: 1px;
+		color: #8f809f;
+	}
+	.preview-project {
+		display: flex;
+		align-items: center;
+		gap: 13px;
+		padding: 25px 22px 23px;
+	}
+	.project-emblem {
+		height: 45px;
+		width: 45px;
+		border: 1px solid #a88ed240;
+		background: #b69af318;
+		border-radius: 10px;
+		display: grid;
+		place-items: center;
+		color: #be9cfa;
+	}
+	.mini-label {
+		font-size: 8px;
+		letter-spacing: 1.5px;
+		color: #a299b0;
+	}
+	.preview-project h2 {
+		font-size: 16px;
+		font-weight: 550;
+		letter-spacing: -0.3px;
+		margin-top: 4px;
+	}
+	.preview-project > :global(svg) {
+		margin-left: auto;
+		color: #887992;
+	}
+	.preview-tabs {
+		display: flex;
+		gap: 22px;
+		padding: 0 22px;
+		border-bottom: 1px solid #ffffff0d;
+	}
+	.preview-tabs button {
+		padding: 0 0 13px;
+		display: flex;
+		gap: 7px;
+		font-size: 11px;
+		color: #8f839f;
+		border-bottom: 2px solid transparent;
+		cursor: pointer;
+	}
+	.preview-tabs button[aria-selected='true'] {
+		color: #ded1f9;
+		border-color: #b69bee;
+	}
+	.preview-tabs button span {
+		font-size: 9px;
+		background: #ffffff08;
+		border-radius: 4px;
+		padding: 0 5px;
+	}
+	.preview-content {
+		padding: 19px 22px 17px;
+		min-height: 239px;
+	}
+	.preview-heading {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 11px;
+		font-weight: 500;
+		margin-bottom: 10px;
+	}
+	.muted {
+		font-size: 9px;
+		font-weight: 400;
+		color: #8e829c;
+	}
+	.example-row {
+		display: flex;
+		align-items: center;
+		gap: 11px;
+		padding: 13px 0;
+		border-bottom: 1px solid #ffffff09;
+	}
+	.example-row:last-child {
+		border: 0;
+	}
+	.avatar {
+		display: grid;
+		place-items: center;
+		width: 31px;
+		height: 31px;
+		border-radius: 9px;
+		font-size: 9px;
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+	.lavender {
+		color: #d8c3fa;
+		background: #a789d725;
+	}
+	.mint {
+		color: #b8d9c7;
+		background: #73a28a22;
+	}
+	.peach {
+		color: #e4b79d;
+		background: #c0816422;
+	}
+	.example-row > div,
+	.event-row > div {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+	}
+	.example-row strong,
+	.event-row strong {
+		font-weight: 500;
+		font-size: 10px;
+		color: #ded7e8;
+	}
+	.example-row > div > span,
+	.event-row > div > span {
+		font-size: 9px;
+		color: #91859f;
+	}
+	.active-badge {
+		margin-left: auto;
+		background: #91c79d0c;
+		border: 1px solid #9ccc9b13;
+		padding: 4px 6px;
+		border-radius: 4px;
+		color: #a5c796;
+		font-size: 8px;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.active-badge i {
+		height: 3px;
+		width: 3px;
+		border-radius: 50%;
+		background: #b6db93;
+	}
+	.preview-footer {
+		padding: 14px 22px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border-top: 1px solid #ffffff0c;
+		font-size: 9px;
+		color: #9d8cae;
+	}
+	.preview-footer > span {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+	}
+	.preview-footer .tiny-dot {
+		height: 4px;
+		width: 4px;
+	}
+	.connection-chip {
+		position: relative;
+		margin: -5px 28px 0 -20px;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		background: #292133;
+		border: 1px solid #bda4df55;
+		border-radius: 9px;
+		box-shadow: 0 15px 35px #0004;
+		padding: 15px 17px;
+		transform: rotate(2deg);
+	}
+	.chip-icon {
+		background: #d7f99b;
+		color: #242d15;
+		border-radius: 50%;
+		width: 28px;
+		height: 28px;
+		display: grid;
+		place-items: center;
+	}
+	.connection-chip > div {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+	.connection-chip strong {
+		font-size: 12px;
+		font-weight: 550;
+	}
+	.connection-chip > div > span {
+		font-size: 9px;
+		color: #a99bb9;
+	}
+	.chip-spark {
+		color: #c1a7fc;
+		font-size: 30px;
+		margin-left: auto;
+		line-height: 1;
+	}
+	.visual-caption {
+		display: flex;
+		justify-content: space-between;
+		color: #736780;
+		font-family: monospace;
+		font-size: 8px;
+		letter-spacing: 0.8px;
+		margin-top: 34px;
+	}
+	.preview-tip {
+		color: #8f849d;
+		font-size: 10px;
+		margin-top: 18px;
+	}
+	.event-row {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		padding: 15px 0;
+		border-bottom: 1px solid #ffffff0a;
+	}
+	.event-dot {
+		height: 6px;
+		width: 6px;
+		border-radius: 50%;
+		background: #b79bde;
+	}
+	.event-row :global(svg) {
+		margin-left: auto;
+		color: #b4ca9b;
+	}
+	.mono {
+		font-family: monospace;
+	}
+	.stack-band {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 30px;
+		padding-block: 29px;
+		border-top: 1px solid #ffffff10;
+		border-bottom: 1px solid #ffffff10;
+	}
+	.stack-band > span {
+		color: #7f778f;
+		font-size: 12px;
+	}
+	.stack-band > div {
+		display: flex;
+		gap: 47px;
+		align-items: center;
+	}
+	.stack-band > div > span {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		font-size: 14px;
+		font-weight: 500;
+		color: #aaa2b9;
+	}
+	.stack-symbol {
+		font-size: 11px;
+		letter-spacing: -0.5px;
+		font-weight: 700;
+		color: #afa4c0;
+	}
+	.react {
+		font-size: 24px;
+	}
+	.svelte {
+		font-size: 22px;
+		font-style: italic;
+	}
+	.api {
+		font-size: 19px;
+	}
+	.features {
+		padding-top: 110px;
+		padding-bottom: 105px;
+	}
+	.section-heading {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: 32px;
+		margin-bottom: 40px;
+	}
+	.section-heading h2,
+	.faq h2 {
+		font-size: 40px;
+		font-weight: 500;
+		line-height: 1.18;
+		letter-spacing: -1.8px;
+		margin-top: 20px;
+	}
+	.section-heading > p {
+		font-size: 13px;
+		line-height: 1.9;
+		color: #9790a4;
+		margin-bottom: 4px;
+	}
+	.feature-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		border: 1px solid #ffffff14;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+	.feature-card {
+		padding: 28px 25px 35px;
+		background: linear-gradient(150deg, #ffffff03, transparent);
+		border-right: 1px solid #ffffff12;
+		transition: background 0.2s;
+	}
+	.feature-card:last-child {
+		border: 0;
+	}
+	.feature-card:hover {
+		background: #a689e60a;
+	}
+	.feature-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 38px;
+	}
+	.feature-icon {
+		color: #b9a4e0;
+	}
+	.feature-number {
+		font-size: 10px;
+		font-family: monospace;
+		color: #635a73;
+	}
+	.feature-card h3 {
+		font-size: 16px;
+		font-weight: 550;
+		letter-spacing: -0.35px;
+		margin-bottom: 13px;
+	}
+	.feature-card p {
+		font-size: 12px;
+		line-height: 1.95;
+		color: #a097b0;
+	}
+	.integration {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 90px;
+		align-items: center;
+		padding-bottom: 120px;
+	}
+	.integration h2 {
+		font-size: 54px;
+		line-height: 1.1;
+		letter-spacing: -2.5px;
+		font-weight: 500;
+		margin-top: 23px;
+	}
+	.integration h2 span {
+		color: #bca6ff;
+	}
+	.integration-copy > p {
+		font-size: 14px;
+		line-height: 1.9;
+		color: #a299b0;
+		margin-top: 22px;
+		max-width: 350px;
+	}
+	.setup-list {
+		margin: 32px 0;
+		display: flex;
+		flex-direction: column;
+		gap: 23px;
+	}
+	.setup-list li {
+		display: flex;
+		gap: 20px;
+		align-items: flex-start;
+	}
+	.setup-list li > span {
+		color: #a78bcf;
+		font: 11px monospace;
+		padding: 7px;
+		border: 1px solid #9f83c930;
+		border-radius: 5px;
+	}
+	.setup-list strong {
+		font-size: 13px;
+		font-weight: 550;
+	}
+	.setup-list p {
+		font-size: 12px;
+		color: #92859f;
+		margin-top: 5px;
+	}
+	.code-card {
+		background: #121016;
+		border: 1px solid #ffffff1c;
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow: 0 20px 80px #0003;
+		min-width: 0;
+	}
+	.code-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 21px 25px;
+		border-bottom: 1px solid #ffffff0e;
+	}
+	.code-language {
+		font-family: monospace;
+		font-size: 9px;
+		letter-spacing: 1.5px;
+		color: #9784ad;
+	}
+	.code-top-dot {
+		width: 6px;
+		height: 6px;
+		background: #c6efa0;
+		border-radius: 50%;
+	}
+	.code-tabs {
+		display: flex;
+		align-items: center;
+		gap: 22px;
+		padding: 15px 25px 0;
+	}
+	.code-tabs > button {
+		font-size: 11px;
+		color: #86798f;
+		border-bottom: 1px solid transparent;
+		padding: 8px 0 15px;
+		cursor: pointer;
+	}
+	.code-tabs > button[aria-selected='true'] {
+		color: #d3c1f0;
+		border-color: #b99ae9;
+	}
+	.code-tabs :global(.copy-btn) {
+		margin-left: auto;
+		margin-bottom: 9px;
+	}
+	.code-card pre {
+		padding: 24px 25px 28px;
+		font-size: 11px;
+		line-height: 1.95;
+		min-height: 303px;
+		overflow: auto;
+		font-family: 'SFMono-Regular', Consolas, monospace;
+		color: #c8c1d2;
+		tab-size: 2;
+	}
+	.code-card :global(.tok-keyword) {
+		color: #b79ae4;
+	}
+	.code-card :global(.tok-string) {
+		color: #c9dfa0;
+	}
+	.code-card :global(.tok-comment) {
+		color: #807589;
+	}
+	.code-card :global(.tok-function) {
+		color: #e7c893;
+	}
+	.code-card :global(.tok-type) {
+		color: #b5d6d9;
+	}
+	.code-card :global(.tok-number) {
+		color: #b7d6ba;
+	}
+	.code-install {
+		margin: 0 18px;
+		padding: 12px 14px;
+		background: #ffffff04;
+		border: 1px solid #ffffff0a;
+		border-radius: 6px;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 11px;
+		color: #b3a8c5;
+	}
+	.code-install :global(.copy-btn) {
+		margin-left: auto;
+	}
+	.code-footnote {
+		font-size: 9px;
+		color: #8d829b;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 19px 25px;
+	}
+	.manifesto {
+		background: #bba3f1;
+		color: #21172f;
+		position: relative;
+		overflow: hidden;
+	}
+	.manifesto-inner {
+		position: relative;
+		padding-block: 72px;
+	}
+	.manifesto .eyebrow {
+		color: #51406e;
+	}
+	.manifesto h2 {
+		font-size: clamp(40px, 5.2vw, 67px);
+		line-height: 1.15;
+		letter-spacing: -3px;
+		font-weight: 500;
+		margin-top: 27px;
+		position: relative;
+		z-index: 1;
+	}
+	.manifesto h2 span {
+		color: #51406e;
+	}
+	.manifesto-bottom {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: 30px;
+		margin-top: 29px;
+		position: relative;
+		z-index: 1;
+	}
+	.manifesto p {
+		font-size: 13px;
+		line-height: 1.9;
+		color: #584671;
+	}
+	.button-dark {
+		background: #251a36;
+		color: #f1eafa;
+		min-width: 175px;
+	}
+	.button-dark:hover {
+		background: #37234c;
+	}
+	.manifesto-art {
+		position: absolute;
+		width: 250px;
+		height: 260px;
+		right: 105px;
+		top: 0;
+		opacity: 0.22;
+		transform: rotate(-20deg);
+	}
+	.manifesto-art span {
+		position: absolute;
+		width: 190px;
+		height: 130px;
+		border: 1px solid #43235d;
+		transform: skewY(-25deg);
+		border-radius: 12px;
+		top: 30px;
+	}
+	.manifesto-art span:nth-child(2) {
+		top: 70px;
+	}
+	.manifesto-art span:nth-child(3) {
+		top: 110px;
+	}
+	.faq {
+		display: grid;
+		grid-template-columns: 1fr 1.25fr;
+		gap: 90px;
+		padding-block: 105px;
+	}
+	.faq h2 {
+		margin-bottom: 28px;
+	}
+	.faq-list details {
+		border-bottom: 1px solid #ffffff15;
+	}
+	.faq-list summary {
+		list-style: none;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 20px;
+		cursor: pointer;
+		padding: 24px 0;
+		font-size: 14px;
+		font-weight: 500;
+	}
+	.faq-list summary::-webkit-details-marker {
+		display: none;
+	}
+	.faq-list summary :global(svg) {
+		color: #a898bc;
+		flex-shrink: 0;
+		transition: transform 0.2s;
+	}
+	.faq-list details[open] summary :global(svg) {
+		transform: rotate(45deg);
+	}
+	.faq-list details p {
+		font-size: 13px;
+		line-height: 1.9;
+		color: #a49aaf;
+		padding: 0 30px 25px 0;
+	}
+	@media (min-width: 1400px) {
+		.hero {
+			padding-top: 105px;
+			padding-bottom: 105px;
+		}
+	}
+	@media (max-width: 1080px) {
+		.hero h1 {
+			font-size: 72px;
+		}
+		.hero-actions {
+			gap: 18px;
+		}
+		.hero-actions .text-link {
+			font-size: 12px;
+		}
+		.hero-visual {
+			padding-left: 15px;
+		}
+		.stack-band > div {
+			gap: 25px;
+		}
+		.feature-card {
+			padding: 24px 19px;
+		}
+		.integration,
+		.faq {
+			gap: 45px;
+		}
+		.section-heading h2 {
+			font-size: 35px;
+		}
+		.section-heading > p {
+			max-width: 250px;
+		}
+		.feature-card h3 {
+			font-size: 14px;
+		}
+	}
+	@media (max-width: 800px) {
+		.wrap {
+			padding-inline: 24px;
+		}
+		.hero {
+			padding-top: 55px;
+			padding-bottom: 50px;
+			grid-template-columns: 1fr;
+			gap: 30px;
+		}
+		.hero h1 {
+			font-size: 74px;
+			letter-spacing: -4px;
+		}
+		.hero-description {
+			max-width: 430px;
+		}
+		.hero-visual {
+			max-width: 510px;
+			width: 100%;
+			margin: auto;
+			padding: 25px 0 35px 20px;
+		}
+		.visual-caption {
+			margin-top: 25px;
+		}
+		.stack-band {
+			flex-direction: column;
+			gap: 21px;
+			align-items: flex-start;
+		}
+		.stack-band > div {
+			flex-wrap: wrap;
+			gap: 20px 28px;
+		}
+		.stack-band > div > span {
+			font-size: 12px;
+		}
+		.features {
+			padding-block: 70px;
+		}
+		.section-heading {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 20px;
+		}
+		.section-heading > p {
+			max-width: none;
+		}
+		.feature-grid {
+			grid-template-columns: 1fr 1fr;
+		}
+		.feature-card {
+			border-bottom: 1px solid #ffffff12;
+			padding: 26px;
+		}
+		.feature-card:nth-child(2) {
+			border-right: 0;
+		}
+		.feature-card:nth-child(3) {
+			border-bottom: 0;
+		}
+		.feature-top {
+			margin-bottom: 25px;
+		}
+		.feature-card h3 {
+			font-size: 16px;
+		}
+		.integration {
+			grid-template-columns: 1fr;
+			gap: 35px;
+			padding-bottom: 70px;
+		}
+		.integration h2 {
+			font-size: 48px;
+		}
+		.integration-copy > p {
+			max-width: 460px;
+		}
+		.code-card {
+			max-width: 560px;
+			width: 100%;
+		}
+		.manifesto-inner {
+			padding-block: 50px;
+		}
+		.manifesto h2 {
+			font-size: 48px;
+			letter-spacing: -2px;
+		}
+		.manifesto-art {
+			right: 10px;
+			opacity: 0.12;
+		}
+		.manifesto-bottom {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 25px;
+		}
+		.faq {
+			grid-template-columns: 1fr;
+			gap: 28px;
+			padding-block: 65px;
+		}
+		.faq h2 {
+			font-size: 36px;
+		}
+		.faq-list summary {
+			padding: 22px 0;
+		}
+	}
+	@media (max-width: 420px) {
+		.hero h1 {
+			font-size: 64px;
+			letter-spacing: -3.5px;
+		}
+		.hero-actions {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 22px;
+		}
+		.hero-note {
+			font-size: 10px;
+			gap: 6px;
+		}
+		.feature-grid {
+			grid-template-columns: 1fr;
+		}
+		.feature-card {
+			border-right: 0;
+			border-bottom: 1px solid #ffffff12 !important;
+		}
+		.feature-card:last-child {
+			border-bottom: 0 !important;
+		}
+		.feature-card p {
+			font-size: 13px;
+		}
+		.section-heading h2 {
+			font-size: 31px;
+		}
+		.hero-visual {
+			padding-left: 8px;
+		}
+		.preview-tabs {
+			gap: 18px;
+		}
+		.preview-project {
+			padding-inline: 16px;
+		}
+		.preview-content {
+			padding-inline: 16px;
+		}
+		.example-row {
+			gap: 8px;
+		}
+		.active-badge {
+			padding: 3px 4px;
+		}
+		.visual-caption {
+			font-size: 7px;
+		}
+		.connection-chip {
+			margin-left: -5px;
+			margin-right: 12px;
+		}
+		.preview-footer {
+			padding-inline: 16px;
+		}
+		.manifesto h2 {
+			font-size: 39px;
+		}
+		.code-card pre {
+			font-size: 10px;
+			padding-inline: 18px;
+		}
+		.code-footnote {
+			font-size: 8px;
+		}
+		.desktop-break {
+			display: none;
+		}
+	}
 </style>

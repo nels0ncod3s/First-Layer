@@ -1,473 +1,672 @@
 <script>
-	import { preloadData } from "$app/navigation";
-	import { dashboard } from "$lib/stores/dashboard.svelte.js";
-
-	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-	import { Button } from "$lib/components/ui/button/index.js";
-	import { Input } from "$lib/components/ui/input/index.js";
-
-	import Plus from "@lucide/svelte/icons/plus";
-	import Search from "@lucide/svelte/icons/search";
-	import EllipsisVertical from "@lucide/svelte/icons/ellipsis-vertical";
-	import Settings from "@lucide/svelte/icons/settings";
-	import Trash2 from "@lucide/svelte/icons/trash-2";
-	import PackagePlus from "@lucide/svelte/icons/package-plus";
-
-	// This page only owns the grid content now — the "workspace" view moved
-	// to dashboard/[project]/+page.svelte, and the Add/Delete modals moved
-	// to +layout.svelte (both are reachable from more than just this page
-	// now). `data.projects` comes from dashboard/+layout.server.js.
+	import { preloadData } from '$app/navigation';
+	import { getDashboard } from '$lib/stores/dashboard.svelte.js';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Search from '@lucide/svelte/icons/search';
+	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
+	import Settings from '@lucide/svelte/icons/settings';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Layers from '@lucide/svelte/icons/layers';
+	import Users from '@lucide/svelte/icons/users';
+	import KeyRound from '@lucide/svelte/icons/key-round';
+	import BookOpen from '@lucide/svelte/icons/book-open';
+	const dashboard = getDashboard();
 	let { data } = $props();
-
-	// Effects don't run during SSR, so relying on $effect alone means the
-	// server renders the store's initial empty array — real projects only
-	// appear after the client hydrates and the effect fires. That's the
-	// "empty state flashes before my projects show up" bug. This direct
-	// call runs during the normal top-to-bottom script evaluation (both on
-	// the server and on the client's first pass), so the very first render
-	// already has the real data.
-	dashboard.setProjects(data.projects);
-
-	// Effect still needed for subsequent updates — e.g. after a form action
-	// triggers SvelteKit's default invalidateAll() and `data` changes on an
-	// already-mounted component, where a plain top-level statement wouldn't
-	// re-run.
-	$effect(() => {
-		dashboard.setProjects(data.projects);
+	let searchQuery = $state('');
+	let sortBy = $state('recent');
+	let searchInputEl;
+	let filteredProjects = $derived.by(() => {
+		const query = searchQuery.trim().toLowerCase();
+		const projects = dashboard.projects.filter(
+			(project) => !query || project.name.toLowerCase().includes(query)
+		);
+		return projects.sort((a, b) =>
+			sortBy === 'name'
+				? a.name.localeCompare(b.name)
+				: new Date(b.created_at) - new Date(a.created_at)
+		);
 	});
-
-	function formatDate(iso) {
-		if (!iso) return "—";
-		return new Date(iso).toLocaleDateString(undefined, {
-			year: "numeric",
-			month: "short",
-			day: "numeric"
-		});
-	}
-
-	// Sums the per-project key/user counts (already fetched for the cards)
-	// into totals for the stats strip — no extra request, just addition
-	// over data that's already on the page.
 	function aggregateCounts(counts) {
-		let keys = 0;
-		let users = 0;
-		for (const p of dashboard.projects) {
-			const c = counts[p.id];
-			if (c) {
-				keys += c.keyCount;
-				users += c.userCount;
-			}
-		}
-		return { keys, users };
+		return dashboard.projects.reduce(
+			(total, p) => ({
+				keys: total.keys + (counts[p.id]?.keyCount ?? 0),
+				users: total.users + (counts[p.id]?.userCount ?? 0)
+			}),
+			{ keys: 0, users: 0 }
+		);
 	}
-
-	// --- Search ---------------------------------------------------------------
-	let searchQuery = $state("");
-	let searchInputEl = $state(null);
-	let filteredProjects = $derived(
-		searchQuery.trim()
-			? dashboard.projects.filter((p) => p.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
-			: dashboard.projects
-	);
-
-	// Cmd+K (Mac) / Ctrl+K (Windows/Linux) jumps straight to the search
-	// input from anywhere on this page. The label shown in the input
-	// itself is resolved client-side only (navigator isn't available
-	// during SSR).
-	let shortcutLabel = $state("Ctrl K");
-	$effect(() => {
-		if (navigator.platform.toUpperCase().includes("MAC")) shortcutLabel = "⌘K";
-	});
-
-	function handleGlobalKeydown(e) {
-		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-			e.preventDefault();
+	function formatDate(iso) {
+		return iso
+			? new Date(iso).toLocaleDateString(undefined, {
+					month: 'short',
+					day: 'numeric',
+					year: 'numeric'
+				})
+			: '—';
+	}
+	function frameworkLabel(framework) {
+		return (
+			{
+				nextjs: 'Next.js',
+				nodejs: 'Node.js',
+				python: 'Python',
+				go: 'Go',
+				react: 'React',
+				svelte: 'Svelte',
+				sveltekit: 'SvelteKit',
+				vue: 'Vue',
+				angular: 'Angular',
+				vanilla: 'JavaScript'
+			}[framework] ??
+			framework ??
+			'Application'
+		);
+	}
+	function handleKeydown(event) {
+		if (
+			!dashboard.dialogOpen &&
+			!dashboard.deleteTarget &&
+			(event.metaKey || event.ctrlKey) &&
+			event.key.toLowerCase() === 'k'
+		) {
+			event.preventDefault();
 			searchInputEl?.focus();
 		}
 	}
 </script>
 
-<svelte:window onkeydown={handleGlobalKeydown} />
-
-<!-- The sidebar, Sidebar.Provider, Sidebar.Trigger, the breadcrumb, and the
-     Add/Delete Project dialogs are all provided by +layout.svelte — don't
-     repeat them here. -->
-
-<div class="w-full pl-4 pr-4 sm:pl-6 sm:pr-6 lg:pl-8">
-	<!-- Stats strip — Total Projects is free (array length), API Keys /
-	     Users are summed client-side from the same per-project counts
-	     already fetched for the card metadata below. No new requests, and
-	     nothing here is a number we can't actually back with real data
-	     (no MAU/request-rate/error-rate — that would need session and
-	     request tracking that doesn't exist in this system yet). -->
-	{#if dashboard.projects.length > 0}
-		<div class="grid grid-cols-3 gap-3 mb-6">
-			<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-				<p class="text-xs text-zinc-500">Total Projects</p>
-				<p class="text-2xl font-semibold text-zinc-100 mt-1">{dashboard.projects.length}</p>
-			</div>
-			<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-				<p class="text-xs text-zinc-500">API Keys</p>
-				<p class="text-2xl font-semibold text-zinc-100 mt-1">
-					{#await data.counts}
-						<span class="text-zinc-600">···</span>
-					{:then counts}
-						{aggregateCounts(counts).keys}
-					{/await}
-				</p>
-			</div>
-			<div class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-				<p class="text-xs text-zinc-500">Total Users</p>
-				<p class="text-2xl font-semibold text-zinc-100 mt-1">
-					{#await data.counts}
-						<span class="text-zinc-600">···</span>
-					{:then counts}
-						{aggregateCounts(counts).users}
-					{/await}
-				</p>
+<svelte:head><title>Projects — First Layer</title></svelte:head>
+<svelte:window onkeydown={handleKeydown} />
+<div class="projects-page">
+	<header class="page-heading">
+		<div>
+			<span class="page-eyebrow">YOUR WORKSPACE</span>
+			<h1>Your next big things.</h1>
+			<p>All your applications, with a solid first layer.</p>
+		</div>
+		<button class="dashboard-primary" onclick={() => dashboard.openAddDialog()}
+			><Plus size={17} /> Create project</button
+		>
+	</header>
+	<div class="workspace-stats">
+		<div>
+			<span class="stat-icon"><Layers size={18} /></span>
+			<div>
+				<span>Projects</span><strong>{dashboard.projects.length}</strong>
 			</div>
 		</div>
-	{/if}
-
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-		<div class="flex items-center gap-2 sm:ml-auto">
-			<div class="relative flex-1 sm:flex-none">
-				<Search class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-				<Input
-					type="search"
-					placeholder="Search projects..."
-					bind:value={searchQuery}
-					bind:ref={searchInputEl}
-					class="pl-8 pr-12 w-full sm:w-56 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-violet-500"
-				/>
-				<kbd
-					class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500"
+		<div>
+			<span class="stat-icon"><Users size={18} /></span>
+			<div>
+				<span>App users</span><strong
+					>{#await data.counts}…{:then counts}{aggregateCounts(counts)
+							.users}{:catch}—{/await}</strong
 				>
-					{shortcutLabel}
-				</kbd>
 			</div>
-
-			<Button
-				class="bg-violet-600 hover:bg-violet-400 text-white hover:text-white gap-1.5"
-				variant="ghost"
-				onclick={() => dashboard.openAddDialog()}
-			>
-				<Plus class="h-4 w-4" />
-				Add Project
-			</Button>
+		</div>
+		<div>
+			<span class="stat-icon"><KeyRound size={18} /></span>
+			<div>
+				<span>API keys</span><strong
+					>{#await data.counts}…{:then counts}{aggregateCounts(counts)
+							.keys}{:catch}—{/await}</strong
+				>
+			</div>
 		</div>
 	</div>
-
-	<!-- Empty state -->
-	{#if dashboard.projects.length === 0}
-		<div class="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-16 sm:py-20 flex flex-col items-center text-center">
-			<div class="h-12 w-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-4">
-				<PackagePlus class="h-6 w-6 text-violet-400" />
+	<section class="project-section" aria-label="Your projects">
+		<div class="project-toolbar">
+			<h2>Projects <span>{dashboard.projects.length}</span></h2>
+			<div class="toolbar-controls">
+				<div class="search-field">
+					<Search size={16} /><input
+						bind:this={searchInputEl}
+						aria-label="Search projects"
+						type="search"
+						placeholder="Find a project…"
+						bind:value={searchQuery}
+					/><kbd>⌘ / Ctrl K</kbd>
+				</div>
+				<select aria-label="Sort projects" bind:value={sortBy}
+					><option value="recent">Newest first</option><option value="name">Name A–Z</option
+					></select
+				>
 			</div>
-			<h2 class="text-base sm:text-lg font-semibold text-zinc-100">No projects yet</h2>
-			<p class="text-sm text-zinc-500 mt-1.5 max-w-xs">
-				Create your first project to start issuing API keys and managing users.
-			</p>
-			<Button
-				class="mt-6 gap-1.5 border border-zinc-800 bg-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100"
-				variant="ghost"
-				onclick={() => dashboard.openAddDialog()}
-			>
-				<Plus class="h-4 w-4" />
-				Add Project
-			</Button>
 		</div>
-	{:else if filteredProjects.length === 0}
-		<!-- No search results -->
-		<div class="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-16 flex flex-col items-center text-center">
-			<Search class="h-6 w-6 text-zinc-600 mb-3" />
-			<h2 class="text-sm font-medium text-zinc-300">No projects match "{searchQuery}"</h2>
-			<Button
-				class="mt-4 text-zinc-400 hover:text-zinc-100"
-				variant="ghost"
-				size="sm"
-				onclick={() => (searchQuery = "")}
-			>
-				Clear search
-			</Button>
-		</div>
-	{:else}
-		<!-- "My Projects" card grid — folder metaphor, mirroring 2.html:
-		     a back shell with a tab (now showing the framework, instead of
-		     being purely decorative), two "papers" that peek out further on
-		     hover, and a front sleeve holding the name/meta + options menu.
-		     Recolored to this app's own dark zinc + violet tokens instead of
-		     2.html's green — same shapes and motion, our palette. -->
-		<ul class="grid gap-5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
-			{#each filteredProjects as project (project.id)}
-				<li class="folder-card group">
-					<!-- Back shell + tab (decorative) -->
-					<div class="folder-back" aria-hidden="true">
-						<div class="folder-tab">
-							<span class="folder-tab-label">
-								{project.framework === "nextjs" ? "Next.js" : project.framework || "Project"}
-							</span>
+		{#if dashboard.projects.length === 0}
+			<div class="workspace-empty">
+				<span class="empty-layers"><Layers size={34} strokeWidth={1.4} /></span><span
+					class="page-eyebrow">EVERY GREAT APP STARTS SOMEWHERE</span
+				>
+				<h2>Let’s lay the foundation.</h2>
+				<p>
+					Create a project to give your app its own users,<br class="hidden sm:block" /> credentials,
+					and authentication settings.
+				</p>
+				<button class="dashboard-primary" onclick={() => dashboard.openAddDialog()}
+					><Plus size={17} /> Create your first project</button
+				><a href="/docs#quickstart">Or take a look at the quickstart <ArrowUpRight size={14} /></a>
+			</div>
+		{:else if filteredProjects.length === 0}
+			<div class="search-empty">
+				<Search size={28} />
+				<h3>No projects found</h3>
+				<p>Try a different name or clear your search.</p>
+				<button class="dashboard-secondary" onclick={() => (searchQuery = '')}>Clear search</button>
+			</div>
+		{:else}
+			<ul class="projects-grid">
+				{#each filteredProjects as project (project.id)}<li class="project-card">
+						<div class="card-top">
+							<span class="project-avatar">{project.name.slice(0, 2).toUpperCase()}</span><span
+								class="framework-tag">{frameworkLabel(project.framework)}</span
+							><DropdownMenu.Root
+								><DropdownMenu.Trigger
+									>{#snippet child({ props })}<button
+											{...props}
+											type="button"
+											class="card-menu"
+											aria-label={`Options for ${project.name}`}
+											><EllipsisVertical size={17} /></button
+										>{/snippet}</DropdownMenu.Trigger
+								><DropdownMenu.Content
+									align="end"
+									class="bg-zinc-900 border-zinc-800 text-zinc-100 min-w-48"
+									><DropdownMenu.Item
+										class="gap-2 focus:bg-zinc-800"
+										onclick={() => dashboard.openProjectSettings(project)}
+										><Settings size={15} />Project settings</DropdownMenu.Item
+									><DropdownMenu.Separator class="bg-zinc-800" /><DropdownMenu.Item
+										class="gap-2 text-red-400 focus:bg-red-500/10"
+										onclick={() => dashboard.requestDelete(project)}
+										><Trash2 size={15} />Delete project</DropdownMenu.Item
+									></DropdownMenu.Content
+								></DropdownMenu.Root
+							>
 						</div>
-					</div>
-
-					<!-- Papers peeking out (decorative) -->
-					<div class="folder-papers" aria-hidden="true">
-						<div class="paper paper-1"></div>
-						<div class="paper paper-2"></div>
-					</div>
-
-					<!-- Front sleeve -->
-					<div class="folder-front">
 						<a
+							class="project-link"
 							href={`/dashboard/${project.id}`}
 							onmouseenter={() => preloadData(`/dashboard/${project.id}`)}
 							onfocus={() => preloadData(`/dashboard/${project.id}`)}
-							class="folder-info"
+							><div>
+								<h3>{project.name}</h3>
+								<p>Created {formatDate(project.created_at)}</p>
+							</div>
+							<ArrowUpRight size={19} />
+							<div class="card-counts">
+								{#await data.counts}<span>Loading project details…</span>{:then counts}<span
+										><Users size={13} />{counts[project.id]?.userCount ?? 0} users</span
+									><span><KeyRound size={13} />{counts[project.id]?.keyCount ?? 0} keys</span
+									>{:catch}<span>Details unavailable</span>{/await}
+							</div></a
 						>
-							<h3 class="folder-title">{project.name}</h3>
-							<span class="folder-meta">
-								{formatDate(project.created_at)}
-								{#await data.counts}
-									<span class="text-zinc-600">· loading…</span>
-								{:then counts}
-									{@const stats = counts[project.id] ?? { keyCount: 0, userCount: 0 }}
-									· {stats.keyCount}
-									{stats.keyCount === 1 ? "key" : "keys"} · {stats.userCount}
-									{stats.userCount === 1 ? "user" : "users"}
-								{/await}
-							</span>
-						</a>
-
-						<DropdownMenu.Root>
-							<DropdownMenu.Trigger>
-								{#snippet child({ props })}
-									<button {...props} type="button" class="menu-btn" aria-label="Project options">
-										<EllipsisVertical class="h-4 w-4" />
-									</button>
-								{/snippet}
-							</DropdownMenu.Trigger>
-							<DropdownMenu.Content align="end" class="bg-zinc-900 border-zinc-800 text-zinc-100 min-w-48">
-								<DropdownMenu.Item
-									class="gap-2 px-2.5 py-2 focus:bg-zinc-800 focus:text-zinc-100"
-									onclick={() => dashboard.openProjectSettings(project)}
-								>
-									<Settings class="h-4 w-4" />
-									Project settings
-								</DropdownMenu.Item>
-								<DropdownMenu.Separator class="bg-zinc-800" />
-								<DropdownMenu.Item
-									class="gap-2 px-2.5 py-2 text-red-400 focus:bg-red-500/10 focus:text-red-400"
-									onclick={() => dashboard.requestDelete(project)}
-								>
-									<Trash2 class="h-4 w-4" />
-									Delete project
-								</DropdownMenu.Item>
-							</DropdownMenu.Content>
-						</DropdownMenu.Root>
-					</div>
-				</li>
-			{/each}
-
-			{#if !searchQuery.trim()}
-				<!-- Dashed "add" tile, styled to sit in the grid as another card
-				     slot rather than leaving a hard stop after the last real
-				     project. Hidden while actively searching so it doesn't read
-				     as a stray result. -->
+					</li>{/each}
 				<li>
-					<button
-						type="button"
-						onclick={() => dashboard.openAddDialog()}
-						class="group mx-auto flex h-[210px] w-full max-w-[320px] flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors"
+					<button class="new-project-card" onclick={() => dashboard.openAddDialog()}
+						><span><Plus size={23} /></span><strong>Room for your next idea.</strong><span
+							>Create another project</span
+						></button
 					>
-						<div
-							class="h-10 w-10 rounded-xl bg-zinc-800/60 border border-zinc-700 flex items-center justify-center group-hover:border-violet-500/40 group-hover:bg-violet-500/10 transition-colors"
-						>
-							<Plus class="h-5 w-5 text-zinc-500 group-hover:text-violet-400 transition-colors" />
-						</div>
-						<span class="text-sm font-medium text-zinc-500 group-hover:text-zinc-300 transition-colors">
-							New project
-						</span>
-					</button>
 				</li>
-			{/if}
-		</ul>
-	{/if}
+			</ul>
+		{/if}
+	</section>
+	<aside class="workspace-guide">
+		<span class="guide-icon"><BookOpen size={22} /></span>
+		<div>
+			<h3>A few lines. Your first user.</h3>
+			<p>The quickstart takes you from a project to your first API request.</p>
+		</div>
+		<a href="/docs#quickstart">Open quickstart <ArrowUpRight size={16} /></a>
+	</aside>
 </div>
 
 <style>
-	/* Folder card — same three-piece structure as 2.html (back shell + tab,
-	   peeking papers, front sleeve), just recolored to this app's own dark
-	   zinc + violet tokens instead of 2.html's green/white. Card itself
-	   carries the hover lift; the papers get an extra shift on top of that,
-	   same as 2.html. */
-	.folder-card {
-		position: relative;
-		width: 100%;
-		max-width: 320px;
-		margin-inline: auto;
-		height: 210px;
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-end;
-		border-radius: 16px;
-		transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+	.projects-page {
+		max-width: 1200px;
+		margin: auto;
 	}
-	.folder-card:hover {
-		transform: translateY(-4px);
-	}
-
-	/* Back shell */
-	.folder-back {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(180deg, #2e2e33 0%, #27272a 60%); /* zinc-800, slightly lifted at the top for depth */
-		border: 1px solid #3f3f46; /* zinc-700 */
-		border-radius: 16px;
-	}
-
-	/* Tab — carries the framework name instead of being purely decorative */
-	.folder-tab {
-		position: absolute;
-		top: -10px;
-		left: 14px;
-		max-width: calc(100% - 28px);
-		height: 24px;
-		display: flex;
-		align-items: center;
-		padding: 0 12px;
-		background: #27272a;
-		border: 1px solid #3f3f46;
-		border-bottom: none;
-		border-top-left-radius: 8px;
-		border-top-right-radius: 8px;
-	}
-	.folder-tab-label {
-		font-size: 10px;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: #a1a1aa; /* zinc-400 */
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	/* Papers peeking out. Sized to nearly fill the visible back area (the
-	   space between the tab and the front sleeve) rather than leaving a
-	   flat, empty-looking strip of back-shell color above them — that flat
-	   strip is what was reading as "a gap" above the card. */
-	.folder-papers {
-		position: absolute;
-		top: 9px;
-		left: 14px;
-		right: 14px;
-		height: 88px;
-		z-index: 1;
-	}
-	.paper {
-		position: absolute;
-		bottom: 0;
-		border-radius: 8px 8px 0 0;
-		box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
-		transition: transform 0.25s ease;
-	}
-	.paper-1 {
-		left: 4px;
-		width: 68%;
-		height: 74px;
-		transform: rotate(-3deg);
-		opacity: 0.85;
-		background: #3f3f46; /* zinc-700 */
-	}
-	.paper-2 {
-		right: 4px;
-		width: 78%;
-		height: 84px;
-		transform: rotate(2deg);
-		/* subtle violet tint at the top edge only — a hint of brand color
-		   on the "inside" of the folder without dyeing the whole card */
-		background: linear-gradient(165deg, #4c1d95 0%, #3f3f46 45%);
-	}
-	.folder-card:hover .paper-1 {
-		transform: rotate(-6deg) translateY(-4px);
-	}
-	.folder-card:hover .paper-2 {
-		transform: rotate(4deg) translateY(-6px);
-	}
-
-	/* Front sleeve */
-	.folder-front {
-		position: relative;
-		z-index: 2;
-		min-height: 104px;
-		background: linear-gradient(180deg, #18181b 0%, #09090b 100%);
-		border: 1px solid #27272a;
-		border-radius: 14px;
-		padding: 14px 16px;
-		box-sizing: border-box;
+	.page-heading {
 		display: flex;
 		justify-content: space-between;
-		align-items: flex-end;
-		gap: 12px;
-		box-shadow:
-			0 -4px 14px rgba(0, 0, 0, 0.25),
-			0 8px 18px rgba(0, 0, 0, 0.3);
+		align-items: center;
+		gap: 25px;
+		margin: 18px 0 33px;
 	}
-
-	.folder-info {
+	.page-eyebrow {
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 1.7px;
+		color: #9c8eb5;
+	}
+	.page-heading h1 {
+		font-size: 32px;
+		font-weight: 550;
+		letter-spacing: -1.3px;
+		line-height: 1.2;
+		margin: 13px 0 9px;
+	}
+	.page-heading p {
+		font-size: 13px;
+		color: #9c95a9;
+	}
+	.workspace-stats {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		border: 1px solid #ffffff12;
+		border-radius: 10px;
+		background: #ffffff02;
+		margin-bottom: 38px;
+	}
+	.workspace-stats > div {
+		padding: 23px 25px;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		border-right: 1px solid #ffffff10;
+	}
+	.workspace-stats > div:last-child {
+		border: 0;
+	}
+	.stat-icon {
+		display: grid;
+		place-items: center;
+		color: #ae9bc9;
+		background: #a78bfa0a;
+		border: 1px solid #a78bfa17;
+		border-radius: 9px;
+		width: 41px;
+		height: 41px;
+	}
+	.workspace-stats > div > div {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+	}
+	.workspace-stats > div > div > span {
+		font-size: 11px;
+		color: #9e95ad;
+	}
+	.workspace-stats strong {
+		font-size: 25px;
+		font-weight: 500;
+		letter-spacing: -0.8px;
+		font-variant-numeric: tabular-nums;
+	}
+	.project-toolbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 18px;
+		margin-bottom: 23px;
+	}
+	.project-toolbar h2 {
+		font-size: 15px;
+		font-weight: 550;
+		display: flex;
+		align-items: center;
+		gap: 9px;
+	}
+	.project-toolbar h2 > span {
+		border: 1px solid #ffffff15;
+		background: #ffffff04;
+		color: #a79ab7;
+		font-size: 10px;
+		padding: 2px 6px;
+		border-radius: 4px;
+	}
+	.toolbar-controls {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+	.search-field {
+		border: 1px solid #ffffff15;
+		background: #ffffff03;
+		border-radius: 7px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 0 11px;
+		min-height: 38px;
+		color: #887a9b;
+	}
+	.search-field:focus-within {
+		border-color: #ae94e9;
+	}
+	.search-field input {
+		background: none;
+		width: 155px;
+		color: #ddd5e9;
+		font-size: 12px;
+		outline: none;
 		min-width: 0;
-		text-decoration: none;
-		border-radius: 6px;
 	}
-	.folder-info:focus-visible {
-		outline: 2px solid #8b5cf6;
-		outline-offset: 3px;
+	.search-field input::placeholder {
+		color: #a398b0;
 	}
-	.folder-title {
-		margin: 0;
-		color: #f4f4f5; /* zinc-100 */
-		font-size: 1.05rem;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-		overflow: hidden;
-		text-overflow: ellipsis;
+	.search-field kbd {
+		font: 9px monospace;
+		color: #8d809e;
+		border: 1px solid #ffffff12;
+		border-radius: 4px;
+		padding: 3px;
 		white-space: nowrap;
 	}
-	.folder-meta {
-		color: #c4b5fd; /* violet-300 */
-		font-size: 0.75rem;
-		font-weight: 500;
+	.toolbar-controls select {
+		font-size: 11px;
+		min-height: 38px;
+		background: #17131f;
+		color: #b7a9c7;
+		border: 1px solid #ffffff15;
+		border-radius: 7px;
+		padding: 0 10px;
+		max-width: 140px;
 	}
-
-	.menu-btn {
-		flex-shrink: 0;
-		background: rgba(255, 255, 255, 0.06);
-		border: none;
-		color: #f4f4f5;
-		width: 32px;
-		height: 32px;
-		border-radius: 8px;
+	.projects-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+		gap: 18px;
+	}
+	.project-card {
+		border: 1px solid #ffffff13;
+		border-radius: 11px;
+		overflow: hidden;
+		background: linear-gradient(130deg, #ffffff04, transparent);
+		transition:
+			transform 0.2s,
+			border-color 0.2s,
+			background 0.2s;
+	}
+	.project-card:hover,
+	.project-card:focus-within {
+		border-color: #b296e649;
+		transform: translateY(-3px);
+		background: #a78bfa07;
+	}
+	.card-top {
 		display: flex;
+		gap: 10px;
+		align-items: center;
+		padding: 22px 22px 0;
+	}
+	.project-avatar {
+		width: 38px;
+		height: 38px;
+		border-radius: 10px;
+		background: #b299e618;
+		border: 1px solid #b299e623;
+		color: #c1a7ea;
+		font: 13px monospace;
+		display: grid;
+		place-items: center;
+	}
+	.framework-tag {
+		font-size: 9px;
+		color: #a89ab7;
+		border: 1px solid #ffffff10;
+		border-radius: 4px;
+		padding: 4px 7px;
+	}
+	.card-menu {
+		margin-left: auto;
+		display: grid;
+		place-items: center;
+		height: 32px;
+		width: 32px;
+		border-radius: 6px;
+		color: #92839f;
+		cursor: pointer;
+	}
+	.card-menu:hover {
+		background: #ffffff07;
+		color: #d6c3ef;
+	}
+	.project-link {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 25px;
+		padding: 24px 22px 20px;
+		align-items: center;
+	}
+	.project-link > div:first-child {
+		flex: 1;
+		min-width: 0;
+	}
+	.project-link h3 {
+		font-size: 17px;
+		font-weight: 550;
+		letter-spacing: -0.35px;
+		overflow-wrap: anywhere;
+	}
+	.project-link p {
+		font-size: 11px;
+		color: #9888aa;
+		margin-top: 7px;
+	}
+	.project-link > :global(svg) {
+		color: #8f7da6;
+	}
+	.card-counts {
+		display: flex;
+		gap: 20px;
+		border-top: 1px solid #ffffff0b;
+		padding-top: 16px;
+		width: 100%;
+		font-size: 11px;
+		color: #afa0c0;
+	}
+	.card-counts > span {
+		display: flex;
+		gap: 7px;
+		align-items: center;
+	}
+	.new-project-card {
+		height: 100%;
+		min-height: 211px;
+		width: 100%;
+		border: 1px dashed #ffffff17;
+		border-radius: 11px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		transition: background 0.2s;
+		transition:
+			background 0.2s,
+			border-color 0.2s;
 	}
-	.menu-btn:hover {
-		background: rgba(255, 255, 255, 0.14);
+	.new-project-card:hover {
+		background: #a78bfa05;
+		border-color: #a78bfa45;
 	}
-	.menu-btn:focus-visible {
-		outline: 2px solid #8b5cf6;
-		outline-offset: 2px;
+	.new-project-card > span:first-child {
+		display: grid;
+		place-items: center;
+		height: 35px;
+		width: 35px;
+		border-radius: 8px;
+		background: #a78bfa0a;
+		color: #b09cca;
+		margin-bottom: 5px;
 	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.folder-card,
-		.paper {
-			transition: none;
+	.new-project-card strong {
+		font-size: 12px;
+		color: #b5a6c6;
+		font-weight: 500;
+	}
+	.new-project-card > span:last-child {
+		font-size: 10px;
+		color: #a092ae;
+	}
+	.workspace-guide {
+		display: flex;
+		align-items: center;
+		gap: 17px;
+		padding: 25px;
+		border: 1px solid #a78bfa1a;
+		background: linear-gradient(100deg, #a78bfa09, transparent);
+		border-radius: 9px;
+		margin-top: 35px;
+	}
+	.guide-icon {
+		color: #ad96d4;
+	}
+	.workspace-guide h3 {
+		font-size: 13px;
+		font-weight: 550;
+	}
+	.workspace-guide p {
+		font-size: 12px;
+		color: #a499b3;
+		margin-top: 6px;
+	}
+	.workspace-guide a {
+		margin-left: auto;
+		white-space: nowrap;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 11px;
+		color: #c2aedc;
+	}
+	.workspace-guide a:hover {
+		color: #e7d6ff;
+	}
+	.workspace-empty {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		border: 1px dashed #a78bfa33;
+		border-radius: 12px;
+		padding: 55px 25px;
+		background: radial-gradient(ellipse at 50% 35%, #a78bfa0a, transparent 65%);
+	}
+	.empty-layers {
+		color: #b99de4;
+		background: #a78bfa0d;
+		border: 1px solid #a78bfa23;
+		padding: 18px;
+		border-radius: 15px;
+		margin-bottom: 25px;
+	}
+	.workspace-empty h2 {
+		font-size: 27px;
+		font-weight: 500;
+		letter-spacing: -1px;
+		margin-top: 14px;
+	}
+	.workspace-empty p {
+		font-size: 13px;
+		line-height: 1.9;
+		color: #a69bb4;
+		margin: 13px 0 25px;
+	}
+	.workspace-empty > a {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 11px;
+		color: #a997c0;
+		margin-top: 20px;
+	}
+	.search-empty {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		align-items: center;
+		text-align: center;
+		padding: 60px 20px;
+		color: #9e8fb1;
+		border: 1px dashed #ffffff18;
+		border-radius: 12px;
+	}
+	.search-empty h3 {
+		color: #d8cde7;
+		font-size: 17px;
+	}
+	.search-empty p {
+		font-size: 12px;
+	}
+	@media (max-width: 760px) {
+		.page-heading {
+			align-items: flex-start;
+			flex-direction: column;
+			margin-top: 8px;
+			gap: 20px;
+		}
+		.page-heading h1 {
+			font-size: 29px;
+		}
+		.workspace-stats > div {
+			padding: 18px 14px;
+			gap: 10px;
+		}
+		.stat-icon {
+			width: 30px;
+			height: 30px;
+		}
+		.workspace-stats strong {
+			font-size: 22px;
+		}
+		.workspace-stats > div > div > span {
+			font-size: 10px;
+		}
+		.project-toolbar {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+		.toolbar-controls {
+			width: 100%;
+		}
+		.search-field {
+			flex: 1;
+			min-width: 0;
+		}
+		.search-field input {
+			width: 100%;
+		}
+		.search-field kbd {
+			display: none;
+		}
+		.workspace-guide {
+			align-items: flex-start;
+			flex-wrap: wrap;
+			padding: 22px;
+		}
+		.workspace-guide > div {
+			flex: 1;
+		}
+		.workspace-guide a {
+			margin-left: 39px;
+		}
+		.workspace-guide p {
+			line-height: 1.8;
+		}
+		.workspace-stats {
+			margin-bottom: 28px;
+		}
+	}
+	@media (max-width: 400px) {
+		.stat-icon {
+			display: none;
+		}
+		.workspace-stats > div {
+			padding: 17px;
+		}
+		.toolbar-controls select {
+			max-width: 115px;
+		}
+		.workspace-empty {
+			padding: 40px 20px;
+		}
+		.workspace-empty h2 {
+			font-size: 23px;
 		}
 	}
 </style>

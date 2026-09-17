@@ -1,7 +1,8 @@
 <script>
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
-	import { dashboard } from '$lib/stores/dashboard.svelte.js';
+	import { getDashboard } from '$lib/stores/dashboard.svelte.js';
+	const dashboard = getDashboard();
 
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -11,7 +12,7 @@
 
 	let { data, form } = $props();
 
-	let name = $state(data.project.name);
+	let name = $state('');
 	let isSaving = $state(false);
 
 	// Keep the field in sync if the project data refreshes underneath us
@@ -26,9 +27,7 @@
 			isSaving = false;
 			if (result.type === 'success' && result.data?.name) {
 				toast.success('Project renamed');
-				// The header switcher's project list lives in this store and
-				// isn't refreshed by invalidateAll() unless the grid page is
-				// mounted — patch it directly so it doesn't show a stale name.
+				// Update the project label immediately while refreshed data loads.
 				dashboard.projects = dashboard.projects.map((p) =>
 					p.id === result.data.id ? { ...p, name: result.data.name } : p
 				);
@@ -49,10 +48,12 @@
 	}
 </script>
 
+<svelte:head><title>Project settings — {data.project.name} — First Layer</title></svelte:head>
+
 <div class="space-y-6 max-w-2xl">
 	<!-- Header -->
 	<div>
-		<h1 class="text-2xl font-bold tracking-tight text-zinc-100">Project Settings</h1>
+		<h1 class="text-2xl font-medium tracking-tight text-zinc-100">Project Settings</h1>
 		<p class="text-sm text-zinc-400">Manage this project's details, or remove it entirely.</p>
 	</div>
 
@@ -71,7 +72,7 @@
 				<Button
 					type="submit"
 					disabled={isSaving || !name.trim() || name.trim() === data.project.name}
-					class="bg-violet-600 hover:bg-violet-500 text-white shrink-0"
+					class="bg-[#bba3f1] hover:bg-[#ccb6ff] text-[#21172d] shrink-0"
 				>
 					{isSaving ? 'Saving...' : 'Save'}
 				</Button>
@@ -81,7 +82,9 @@
 		<div class="grid grid-cols-2 gap-4 pt-3 border-t border-zinc-800/60 text-sm">
 			<div>
 				<p class="text-xs uppercase tracking-wide text-zinc-500 mb-1">Project ID</p>
-				<p class="font-mono text-zinc-300 truncate" title={data.project.id}>{data.project.id}</p>
+				<p class="font-mono text-zinc-300 truncate" title={data.project.id}>
+					{data.project.id}
+				</p>
 			</div>
 			<div>
 				<p class="text-xs uppercase tracking-wide text-zinc-500 mb-1">Created</p>
@@ -99,9 +102,7 @@
 	<!-- Danger zone -->
 	<div class="rounded-xl border border-red-500/20 bg-red-500/[0.03] p-6 shadow-sm">
 		<h2 class="text-sm font-semibold text-red-400 mb-1">Danger zone</h2>
-		<p class="text-xs text-zinc-500 mb-4">
-			Deleting a project is permanent and can't be undone.
-		</p>
+		<p class="text-xs text-zinc-500 mb-4">Deleting a project is permanent and can't be undone.</p>
 		<Button
 			variant="outline"
 			class="gap-2 border-red-500/30 bg-transparent text-red-400 hover:bg-red-500/10 hover:text-red-300"

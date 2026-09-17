@@ -1,16 +1,16 @@
 <script>
-	import MarketingNav from "$lib/components/marketing/MarketingNav.svelte";
-	import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
-	import CopyButton from "$lib/components/CopyButton.svelte";
-	import { highlightCode } from "$lib/highlight.js";
-	import Search from "@lucide/svelte/icons/search";
-	import X from "@lucide/svelte/icons/x";
+	import MarketingNav from '$lib/components/marketing/MarketingNav.svelte';
+	import MarketingFooter from '$lib/components/marketing/MarketingFooter.svelte';
+	import CopyButton from '$lib/components/CopyButton.svelte';
+	import { highlightCode } from '$lib/highlight.js';
+	import Search from '@lucide/svelte/icons/search';
+	import X from '@lucide/svelte/icons/x';
 
-	const installCommand = "npm install firstlayer";
+	const installCommand = 'npm install firstlayer';
 
 	const quickstartCode = `import { FirstLayer } from "firstlayer";
 
-const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" }); // Dashboard -> your project -> API
+const firstlayer = new FirstLayer({ apiKey: process.env.FIRSTLAYER_API_KEY }); // Dashboard -> your project -> API
 
 const { user } = await firstlayer.auth.signUp({
   email: "ada@example.com",
@@ -23,16 +23,16 @@ const { user } = await firstlayer.auth.signUp({
 	// those same ids for the sidebar — move an id between arrays to move it
 	// in the nav, no need to duplicate its label anywhere.
 	const sections = [
-		{ id: "quickstart", label: "Quickstart" },
-		{ id: "installation", label: "Installation" },
-		{ id: "managing-users", label: "Managing users" },
-		{ id: "api-reference", label: "API reference" }
+		{ id: 'quickstart', label: 'Quickstart' },
+		{ id: 'installation', label: 'Installation' },
+		{ id: 'managing-users', label: 'Managing users' },
+		{ id: 'api-reference', label: 'API reference' }
 	];
 
 	const navGroups = [
-		{ label: "Get started", items: ["quickstart", "installation"] },
-		{ label: "Guides", items: ["managing-users"] },
-		{ label: "Reference", items: ["api-reference"] }
+		{ label: 'Get started', items: ['quickstart', 'installation'] },
+		{ label: 'Guides', items: ['managing-users'] },
+		{ label: 'Reference', items: ['api-reference'] }
 	];
 
 	// --- Per-framework installation snippets ---------------------------------
@@ -40,15 +40,28 @@ const { user } = await firstlayer.auth.signUp({
 	// wraps are documented in full under Quickstart / API reference — this
 	// is just the ergonomic layer on top of them.
 	const frameworks = [
-		{ id: "js", label: "JavaScript", file: "firstlayer.js" },
-		{ id: "svelte", label: "Svelte", file: "+page.svelte" },
-		{ id: "react", label: "React", file: "App.jsx" }
+		{ id: 'js', label: 'JavaScript', file: 'server/firstlayer.js' },
+		{ id: 'svelte', label: 'SvelteKit', file: 'src/routes/signup/+server.js' },
+		{ id: 'react', label: 'Next.js', file: 'app/api/signup/route.js' }
 	];
-	let activeFramework = $state("js");
+	let activeFramework = $state('js');
+	function handleFrameworkKey(event, id) {
+		const index = frameworks.findIndex((framework) => framework.id === id);
+		let next;
+		if (event.key === 'ArrowRight') next = (index + 1) % frameworks.length;
+		if (event.key === 'ArrowLeft') next = (index - 1 + frameworks.length) % frameworks.length;
+		if (event.key === 'Home') next = 0;
+		if (event.key === 'End') next = frameworks.length - 1;
+		if (next !== undefined) {
+			event.preventDefault();
+			activeFramework = frameworks[next].id;
+			document.getElementById(`framework-${activeFramework}`)?.focus();
+		}
+	}
 
 	const jsCode = `import { FirstLayer } from "firstlayer";
 
-const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" }); // Dashboard -> your project -> API
+const firstlayer = new FirstLayer({ apiKey: process.env.FIRSTLAYER_API_KEY }); // Dashboard -> your project -> API
 
 // Create a user
 const { user } = await firstlayer.auth.signUp({
@@ -59,60 +72,41 @@ const { user } = await firstlayer.auth.signUp({
 // List your users
 const { users } = await firstlayer.users.list();`;
 
-	const svelteCode = `<script>
-  import { FirstLayer } from "firstlayer";
-
-  const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" });
-
-  let users = $state([]);
-  let email = $state("");
-  let password = $state("");
-
-  async function createUser() {
-    const { user } = await firstlayer.auth.signUp({ email, password });
-    users = [...users, user];
-  }
-
-  $effect(() => {
-    firstlayer.users.list().then(({ users: list }) => (users = list));
-  });
-<` + `/script>
-
-<input bind:value={email} placeholder="email" />
-<input bind:value={password} type="password" />
-<button onclick={createUser}>Sign up</button>`;
-
-	const reactCode = `import { useEffect, useState } from "react";
+	const svelteCode = `// Server route: src/routes/signup/+server.js
+import { json } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 import { FirstLayer } from "firstlayer";
 
-const firstlayer = new FirstLayer({ apiKey: "YOUR_API_KEY" });
+const firstlayer = new FirstLayer({
+  apiKey: env.FIRSTLAYER_API_KEY
+});
 
-export default function App() {
-  const [users, setUsers] = useState([]);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export async function POST({ request }) {
+  const { email, password } = await request.json();
+  const { user } = await firstlayer.auth.signUp({ email, password });
+  return json({ user }, { status: 201 });
+}
 
-  useEffect(() => {
-    firstlayer.users.list().then(({ users }) => setUsers(users));
-  }, []);
+// Your frontend calls POST /signup. The API key stays on the server.`;
 
-  async function createUser() {
-    const { user } = await firstlayer.auth.signUp({ email, password });
-    setUsers((prev) => [...prev, user]);
-  }
+	const reactCode = `// Next.js server route: app/api/signup/route.js
+import { FirstLayer } from "firstlayer";
 
-  return (
-    <div>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
-      <button onClick={createUser}>Sign up</button>
-    </div>
-  );
-}`;
+const firstlayer = new FirstLayer({
+  apiKey: process.env.FIRSTLAYER_API_KEY
+});
+
+export async function POST(request) {
+  const { email, password } = await request.json();
+  const { user } = await firstlayer.auth.signUp({ email, password });
+  return Response.json({ user }, { status: 201 });
+}
+
+// Your React frontend calls POST /api/signup. Never expose the API key.`;
 
 	const snippetsById = { js: jsCode, svelte: svelteCode, react: reactCode };
 	let activeCode = $derived(snippetsById[activeFramework]);
-	let activeFile = $derived(frameworks.find((f) => f.id === activeFramework)?.file ?? "");
+	let activeFile = $derived(frameworks.find((f) => f.id === activeFramework)?.file ?? '');
 
 	// --- CRUD endpoint reference ---------------------------------------------
 	// `view` is per-endpoint state (request/response tab) — the array is
@@ -122,11 +116,11 @@ export default function App() {
 	// `firstlayer` client from the Installation section is already set up.
 	let endpoints = $state([
 		{
-			id: "ep-signup",
-			method: "POST",
-			path: "/v1/auth/signup",
-			title: "Create a user",
-			description: "Registers a new end-user under your project. Emails are unique per project.",
+			id: 'ep-signup',
+			method: 'POST',
+			path: '/v1/auth/signup',
+			title: 'Create a user',
+			description: 'Registers a new end-user under your project. Emails are unique per project.',
 			request: `const { user } = await firstlayer.auth.signUp({
   email: "ada@example.com",
   password: "correct horse battery staple"
@@ -135,40 +129,40 @@ export default function App() {
   "message": "User created successfully",
   "user": { "id": "…", "email": "ada@example.com", "created_at": "…" }
 }`,
-			view: "request"
+			view: 'request'
 		},
 		{
-			id: "ep-list-users",
-			method: "GET",
-			path: "/v1/users",
-			title: "List users",
-			description: "Returns every end-user that belongs to your project.",
+			id: 'ep-list-users',
+			method: 'GET',
+			path: '/v1/users',
+			title: 'List users',
+			description: 'Returns every end-user that belongs to your project.',
 			request: `const { users } = await firstlayer.users.list();`,
 			response: `{
   "users": [
     { "id": "…", "email": "ada@example.com", "created_at": "…" }
   ]
 }`,
-			view: "request"
+			view: 'request'
 		},
 		{
-			id: "ep-get-user",
-			method: "GET",
-			path: "/v1/users/:id",
-			title: "Get a user",
-			description: "Returns a single end-user by id, scoped to your project.",
+			id: 'ep-get-user',
+			method: 'GET',
+			path: '/v1/users/:id',
+			title: 'Get a user',
+			description: 'Returns a single end-user by id, scoped to your project.',
 			request: `const { user } = await firstlayer.users.get("USER_ID");`,
 			response: `{
   "user": { "id": "…", "email": "ada@example.com", "created_at": "…" }
 }`,
-			view: "request"
+			view: 'request'
 		},
 		{
-			id: "ep-update-user",
-			method: "PATCH",
-			path: "/v1/users/:id",
-			title: "Update a user",
-			description: "Updates email and/or password. Send only the fields you want to change.",
+			id: 'ep-update-user',
+			method: 'PATCH',
+			path: '/v1/users/:id',
+			title: 'Update a user',
+			description: 'Updates email and/or password. Send only the fields you want to change.',
 			request: `const { user } = await firstlayer.users.update("USER_ID", {
   email: "ada.new@example.com"
 });`,
@@ -176,25 +170,25 @@ export default function App() {
   "message": "User updated successfully",
   "user": { "id": "…", "email": "ada.new@example.com", "created_at": "…" }
 }`,
-			view: "request"
+			view: 'request'
 		},
 		{
-			id: "ep-delete-user",
-			method: "DELETE",
-			path: "/v1/users/:id",
-			title: "Delete a user",
-			description: "Permanently deletes an end-user from your project.",
+			id: 'ep-delete-user',
+			method: 'DELETE',
+			path: '/v1/users/:id',
+			title: 'Delete a user',
+			description: 'Permanently deletes an end-user from your project.',
 			request: `const { id } = await firstlayer.users.delete("USER_ID");`,
 			response: `{
   "message": "User deleted successfully",
   "id": "…"
 }`,
-			view: "request"
+			view: 'request'
 		}
 	]);
 
 	function methodClass(method) {
-		return "method method-" + method.toLowerCase();
+		return 'method method-' + method.toLowerCase();
 	}
 
 	// --- Sidebar search ----------------------------------------------------
@@ -202,14 +196,21 @@ export default function App() {
 	// matches against the endpoints they contain. This is one scrolling
 	// page, not separate routes, so search narrows down where to jump
 	// rather than paginating anything.
-	let query = $state("");
+	let query = $state('');
 	let searchInput = $state(null);
+	let matchedEndpoints = $derived.by(() => {
+		const needle = query.trim().toLowerCase();
+		if (!needle) return [];
+		return endpoints.filter((endpoint) =>
+			`${endpoint.title} ${endpoint.path} ${endpoint.method}`.toLowerCase().includes(needle)
+		);
+	});
 
 	function itemMatches(item, q) {
 		if (!q.trim()) return true;
 		const needle = q.trim().toLowerCase();
 		if (item.label.toLowerCase().includes(needle)) return true;
-		if (item.id === "managing-users" || item.id === "api-reference") {
+		if (item.id === 'managing-users' || item.id === 'api-reference') {
 			return endpoints.some(
 				(ep) =>
 					ep.title.toLowerCase().includes(needle) ||
@@ -236,34 +237,28 @@ export default function App() {
 	$effect(() => {
 		function onKeydown(e) {
 			const tag = document.activeElement?.tagName;
-			if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA") {
+			if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
 				e.preventDefault();
 				searchInput?.focus();
-			} else if (e.key === "Escape" && document.activeElement === searchInput) {
+			} else if (e.key === 'Escape' && document.activeElement === searchInput) {
 				searchInput.blur();
 			}
 		}
-		window.addEventListener("keydown", onKeydown);
-		return () => window.removeEventListener("keydown", onKeydown);
+		window.addEventListener('keydown', onKeydown);
+		return () => window.removeEventListener('keydown', onKeydown);
 	});
 
 	// --- Scroll-spy ----------------------------------------------------------
 	// Tracks whichever tracked heading/endpoint sits nearest the top of the
 	// viewport and drives both the left nav's active state and the right
 	// "on this page" TOC's active state off the one observer.
-	let activeId = $state("quickstart");
+	let activeId = $state('quickstart');
 	let activeSection = $derived(
-		endpoints.some((ep) => ep.id === activeId) ? "managing-users" : activeId
+		endpoints.some((ep) => ep.id === activeId) ? 'managing-users' : activeId
 	);
 
 	$effect(() => {
-		const ids = [
-			"quickstart",
-			"installation",
-			"managing-users",
-			...endpoints.map((ep) => ep.id),
-			"api-reference"
-		];
+		const ids = [...sections.map((section) => section.id), ...endpoints.map((ep) => ep.id)];
 		const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
 		if (!els.length) return;
 
@@ -275,7 +270,7 @@ export default function App() {
 					activeId = visible[0].target.id;
 				}
 			},
-			{ rootMargin: "-100px 0px -70% 0px", threshold: [0, 1] }
+			{ rootMargin: '-100px 0px -70% 0px', threshold: [0, 1] }
 		);
 
 		els.forEach((el) => observer.observe(el));
@@ -302,9 +297,20 @@ export default function App() {
 
 			<div class="docs-search">
 				<Search class="h-4 w-4 search-icon" aria-hidden="true" />
-				<input type="text" placeholder="Search docs…" bind:value={query} bind:this={searchInput} />
+				<input
+					type="search"
+					aria-label="Search documentation"
+					placeholder="Search docs…"
+					bind:value={query}
+					bind:this={searchInput}
+				/>
 				{#if query}
-					<button type="button" class="search-clear" aria-label="Clear search" onclick={() => (query = "")}>
+					<button
+						type="button"
+						class="search-clear"
+						aria-label="Clear search"
+						onclick={() => (query = '')}
+					>
 						<X class="h-3.5 w-3.5" />
 					</button>
 				{:else}
@@ -316,6 +322,16 @@ export default function App() {
 				{#if groupedNav.length === 0}
 					<p class="nav-empty">No results for "{query}"</p>
 				{:else}
+					{#if matchedEndpoints.length > 0}
+						<div class="nav-group">
+							<span class="nav-group-label">Matching endpoints</span>
+							{#each matchedEndpoints as endpoint (endpoint.id)}
+								<a href={`#${endpoint.id}`} class:active={activeId === endpoint.id}
+									>{endpoint.title}</a
+								>
+							{/each}
+						</div>
+					{/if}
 					{#each groupedNav as group (group.label)}
 						<div class="nav-group">
 							<span class="nav-group-label">{group.label}</span>
@@ -331,13 +347,21 @@ export default function App() {
 		<main class="docs-content">
 			<span class="badge">Documentation</span>
 			<h1>Get started with <span class="grad">First Layer.</span></h1>
-			<p class="lede">Everything you need to add multi-tenant, per-project user accounts to your app — tested against the real API, not a mockup.</p>
+			<p class="lede">
+				Everything you need to add multi-tenant, per-project user accounts to your app — with a
+				straightforward SDK and REST API.
+			</p>
 
 			<section id="quickstart">
 				<h2>Quickstart</h2>
 				<ol class="steps">
-					<li>Create a project from your <a href="/dashboard">dashboard</a>.</li>
-					<li>Open that project's <strong>API</strong> page and create a key — copy it, it's only shown once.</li>
+					<li>
+						Create a project from your <a href="/dashboard">dashboard</a>.
+					</li>
+					<li>
+						Open that project's <strong>API</strong> page and create a key — copy it, it's only shown
+						once.
+					</li>
 					<li>Install the package:</li>
 				</ol>
 				<div class="code-window">
@@ -357,12 +381,24 @@ export default function App() {
 					</div>
 					<pre class="code-body"><code>{@html highlightCode(quickstartCode)}</code></pre>
 				</div>
-				<p>Swap <code>YOUR_API_KEY</code> for the key you just copied — that's the only thing you need to change.</p>
+				<p>
+					Keep your key in a server environment variable. Run this example on your server so the key
+					stays private.
+				</p>
 			</section>
 
 			<section id="installation">
+				<aside class="docs-callout">
+					<strong>Keep privileged API keys on your server.</strong>
+					<p>
+						These examples run on your server. Connect your frontend to your own signup endpoint so
+						the API key stays private.
+					</p>
+				</aside>
 				<h2>Installation</h2>
-				<p>Install the official JavaScript package and skip writing the fetch boilerplate yourself.</p>
+				<p>
+					Install the official JavaScript package and skip writing the fetch boilerplate yourself.
+				</p>
 
 				<div class="code-window">
 					<div class="flat-header">
@@ -372,12 +408,19 @@ export default function App() {
 					<pre class="code-body"><code>{@html highlightCode(installCommand)}</code></pre>
 				</div>
 
-				<p>Create a client with your API key, then pick your framework for a copy-pasteable starting point.</p>
+				<p>
+					Create a client on your server using an environment variable for your API key. Browser
+					interfaces should call your own server routes.
+				</p>
 
-				<div class="framework-tabs" role="tablist">
+				<div class="framework-tabs" role="tablist" aria-label="Server integration framework">
 					{#each frameworks as f (f.id)}
 						<button
 							role="tab"
+							id={`framework-${f.id}`}
+							aria-controls="framework-code"
+							tabindex={activeFramework === f.id ? 0 : -1}
+							onkeydown={(event) => handleFrameworkKey(event, f.id)}
 							aria-selected={activeFramework === f.id}
 							class="framework-tab"
 							class:active={activeFramework === f.id}
@@ -388,7 +431,13 @@ export default function App() {
 					{/each}
 				</div>
 
-				<div class="code-window">
+				<div
+					class="code-window"
+					id="framework-code"
+					role="tabpanel"
+					aria-labelledby={`framework-${activeFramework}`}
+					tabindex="0"
+				>
 					<div class="flat-header">
 						<span class="flat-filename">{activeFile}</span>
 						<CopyButton text={activeCode} label="Copy code" />
@@ -399,7 +448,10 @@ export default function App() {
 
 			<section id="managing-users">
 				<h2>Managing users (CRUD)</h2>
-				<p>Every request below is scoped to your project by the <code>x-api-key</code> header — one project's key can never see or modify another project's users.</p>
+				<p>
+					Every request below is scoped to your project by the <code>x-api-key</code> header — one project's
+					key can never see or modify another project's users.
+				</p>
 
 				{#each endpoints as ep (ep.id)}
 					<div class="endpoint" id={ep.id}>
@@ -416,19 +468,21 @@ export default function App() {
 									<button
 										type="button"
 										class="view-tab"
-										class:active={ep.view === "request"}
-										onclick={() => (ep.view = "request")}
-									>Request</button>
+										class:active={ep.view === 'request'}
+										onclick={() => (ep.view = 'request')}>Request</button
+									>
 									<button
 										type="button"
 										class="view-tab"
-										class:active={ep.view === "response"}
-										onclick={() => (ep.view = "response")}
-									>Response</button>
+										class:active={ep.view === 'response'}
+										onclick={() => (ep.view = 'response')}>Response</button
+									>
 								</div>
-								<CopyButton text={ep.view === "request" ? ep.request : ep.response} label="Copy" />
+								<CopyButton text={ep.view === 'request' ? ep.request : ep.response} label="Copy" />
 							</div>
-							<pre class="code-body"><code>{@html highlightCode(ep.view === "request" ? ep.request : ep.response)}</code></pre>
+							<pre class="code-body"><code
+									>{@html highlightCode(ep.view === 'request' ? ep.request : ep.response)}</code
+								></pre>
 						</div>
 					</div>
 				{/each}
@@ -436,7 +490,10 @@ export default function App() {
 
 			<section id="api-reference">
 				<h2>API reference</h2>
-				<p>All endpoints live under <code>https://firstlayer-backend.pxxl.run</code> — the same URL for every project, every environment. Only your API key changes.</p>
+				<p>
+					All endpoints live under <code>https://firstlayer-backend.pxxl.run</code> — the same URL for
+					every project, every environment. Only your API key changes.
+				</p>
 				<div class="ref-table-wrap">
 					<table class="ref-table">
 						<thead>
@@ -467,7 +524,7 @@ export default function App() {
 			<nav>
 				{#each sections as section (section.id)}
 					<a href="#{section.id}" class:active={activeId === section.id}>{section.label}</a>
-					{#if section.id === "managing-users"}
+					{#if section.id === 'managing-users'}
 						<div class="toc-sub">
 							{#each endpoints as ep (ep.id)}
 								<a href="#{ep.id}" class:active={activeId === ep.id}>{ep.title}</a>
@@ -483,11 +540,26 @@ export default function App() {
 </div>
 
 <style>
+	.docs-callout {
+		border: 1px solid #bba3f13a;
+		background: #bba3f109;
+		border-radius: 9px;
+		padding: 18px 20px;
+		margin-bottom: 25px;
+		font-size: 13px;
+		color: #d5c1ee;
+	}
+	.docs-callout p {
+		font-size: 12px;
+		line-height: 1.9;
+		color: #b3a1c8;
+		margin-top: 8px;
+	}
 	:global(body) {
 		margin: 0;
-		background: #08080c;
+		background: #0c0b10;
 		color: #f3f4f6;
-		font-family: "Geist Variable", "Geist", system-ui, sans-serif;
+		font-family: 'Geist Variable', 'Geist', system-ui, sans-serif;
 	}
 	:global(*) {
 		box-sizing: border-box;
@@ -507,7 +579,11 @@ export default function App() {
 		left: 0;
 		right: 0;
 		height: 480px;
-		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(124, 58, 237, 0.24), transparent 70%);
+		background: radial-gradient(
+			ellipse 70% 60% at 50% 0%,
+			rgba(187, 163, 241, 0.09),
+			transparent 70%
+		);
 		pointer-events: none;
 		z-index: 0;
 	}
@@ -582,7 +658,7 @@ export default function App() {
 		letter-spacing: 0.06em;
 	}
 	.docs-version {
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.68rem;
 		color: #a78bfa;
 		border: 1px solid rgba(124, 58, 237, 0.3);
@@ -623,7 +699,7 @@ export default function App() {
 		color: #52525b;
 	}
 	.docs-search kbd {
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.72rem;
 		color: #71717a;
 		border: 1px solid rgba(255, 255, 255, 0.12);
@@ -680,7 +756,9 @@ export default function App() {
 		padding: 0.4rem 0 0.4rem 0.75rem;
 		margin-left: -0.75rem;
 		border-left: 2px solid transparent;
-		transition: color 0.15s ease, border-color 0.15s ease;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease;
 	}
 	.docs-nav a:hover {
 		color: #fff;
@@ -707,7 +785,9 @@ export default function App() {
 		padding: 0.3rem 0 0.3rem 0.75rem;
 		margin-left: -0.75rem;
 		border-left: 2px solid transparent;
-		transition: color 0.15s ease, border-color 0.15s ease;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease;
 	}
 	.docs-toc a:hover {
 		color: #d4d4d8;
@@ -757,7 +837,7 @@ export default function App() {
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 5px;
 		padding: 0.1rem 0.4rem;
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.85em;
 		color: #d4d4d8;
 	}
@@ -789,7 +869,7 @@ export default function App() {
 		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 	}
 	.flat-filename {
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.78rem;
 		color: #71717a;
 	}
@@ -808,12 +888,14 @@ export default function App() {
 		background: none;
 		border: none;
 		color: #71717a;
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.74rem;
 		padding: 0.3rem 0.65rem;
 		border-radius: 6px;
 		cursor: pointer;
-		transition: background 0.15s ease, color 0.15s ease;
+		transition:
+			background 0.15s ease,
+			color 0.15s ease;
 	}
 	.view-tab:hover {
 		color: #d4d4d8;
@@ -825,7 +907,7 @@ export default function App() {
 	.code-body {
 		margin: 0;
 		padding: 1.25rem 1.5rem;
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.85rem;
 		line-height: 1.7;
 		color: #d4d4d8;
@@ -839,14 +921,21 @@ export default function App() {
 		   moves away and the shadow becomes visible — a clear "there's more
 		   this way" signal without needing JS, and without needing to zoom. */
 		background-image:
-			linear-gradient(to right, #12121a, #12121a),
-			linear-gradient(to right, #12121a, #12121a),
+			linear-gradient(to right, #12121a, #12121a), linear-gradient(to right, #12121a, #12121a),
 			linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)),
 			linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
-		background-position: left center, right center, left center, right center;
+		background-position:
+			left center,
+			right center,
+			left center,
+			right center;
 		background-repeat: no-repeat;
 		background-color: #12121a;
-		background-size: 24px 100%, 24px 100%, 12px 100%, 12px 100%;
+		background-size:
+			24px 100%,
+			24px 100%,
+			12px 100%,
+			12px 100%;
 		background-attachment: local, local, scroll, scroll;
 	}
 	@media (max-width: 640px) {
@@ -890,7 +979,10 @@ export default function App() {
 		border-radius: 8px;
 		font-size: 0.85rem;
 		cursor: pointer;
-		transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+		transition:
+			background 0.15s ease,
+			color 0.15s ease,
+			border-color 0.15s ease;
 	}
 	.framework-tab:hover {
 		color: #fff;
@@ -930,7 +1022,7 @@ export default function App() {
 	.method {
 		display: inline-flex;
 		align-items: center;
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		font-size: 0.72rem;
 		font-weight: 700;
 		letter-spacing: 0.03em;

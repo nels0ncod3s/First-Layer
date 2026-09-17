@@ -1,26 +1,26 @@
 <script>
-	import MarketingNav from "$lib/components/marketing/MarketingNav.svelte";
-	import MarketingFooter from "$lib/components/marketing/MarketingFooter.svelte";
+	import MarketingNav from '$lib/components/marketing/MarketingNav.svelte';
+	import MarketingFooter from '$lib/components/marketing/MarketingFooter.svelte';
 
 	const entries = [
 		{
-			date: "July 2026",
-			tag: "New",
-			title: "Dashboard rebuilt",
-			body: "Generate and revoke real API keys, manage and block your users, and see actual activity — all wired to live data instead of placeholders."
+			date: 'July 2026',
+			tag: 'New',
+			title: 'Dashboard rebuilt',
+			body: 'Generate and revoke real API keys, manage and block your users, and see actual activity — all wired to live data instead of placeholders.'
 		},
 		{
-			date: "July 2026",
-			tag: "New",
-			title: "Public REST API",
+			date: 'July 2026',
+			tag: 'New',
+			title: 'Public REST API',
 			body: "Full CRUD for your project's end-users — POST /v1/auth/signup plus GET/PATCH/DELETE on /v1/users, scoped to your project by API key."
 		}
 	];
 
 	const tagClass = {
-		New: "tag-new",
-		Improved: "tag-improved",
-		Fixed: "tag-fixed"
+		New: 'tag-new',
+		Improved: 'tag-improved',
+		Fixed: 'tag-fixed'
 	};
 </script>
 
@@ -67,16 +67,12 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #08080c;
+		background: #0c0b10;
 		color: #f3f4f6;
-		font-family: "Geist Variable", "Geist", system-ui, sans-serif;
+		font-family: 'Geist Variable', 'Geist', system-ui, sans-serif;
 	}
 	:global(*) {
 		box-sizing: border-box;
-	}
-	a {
-		color: inherit;
-		text-decoration: none;
 	}
 
 	.page {
@@ -89,7 +85,11 @@
 		left: 0;
 		right: 0;
 		height: 480px;
-		background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(124, 58, 237, 0.24), transparent 70%);
+		background: radial-gradient(
+			ellipse 70% 60% at 50% 0%,
+			rgba(187, 163, 241, 0.09),
+			transparent 70%
+		);
 		pointer-events: none;
 		z-index: 0;
 	}
@@ -147,7 +147,7 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
-		background: #7c3aed;
+		background: #bba3f1;
 		box-shadow: 0 0 10px rgba(124, 58, 237, 0.6);
 		margin-top: 0.4rem;
 		flex-shrink: 0;
@@ -165,7 +165,7 @@
 		display: block;
 		color: #71717a;
 		font-size: 0.8rem;
-		font-family: "Geist Mono Variable", "Geist Mono", monospace;
+		font-family: 'Geist Mono Variable', 'Geist Mono', monospace;
 		margin-bottom: 0.6rem;
 	}
 	.entry-head {
