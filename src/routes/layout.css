@@ -1,7 +1,7 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
-@import "shadcn-svelte/tailwind.css";
-@import "@fontsource-variable/geist";
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/geist';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -140,5 +140,203 @@
 	html::-webkit-scrollbar,
 	body::-webkit-scrollbar {
 		display: none;
+	}
+}
+
+/* Shared First Layer design foundations. */
+:root {
+	color-scheme: dark;
+}
+body {
+	background: #0c0b10;
+	color: #ede8f4;
+	-webkit-font-smoothing: antialiased;
+}
+button,
+a,
+input,
+select,
+summary {
+	-webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled),
+summary {
+	cursor: pointer;
+}
+:where(a, button, input, select, textarea, summary):focus-visible {
+	outline: 2px solid #c1a5f5;
+	outline-offset: 4px;
+}
+:where(h1, h2, h3, p) {
+	text-wrap: pretty;
+}
+::selection {
+	background: #bba3f150;
+	color: #fff;
+}
+[id] {
+	scroll-margin-top: 105px;
+}
+.skip-link {
+	position: fixed;
+	left: 20px;
+	top: -100px;
+	z-index: 100;
+	padding: 12px 18px;
+	border-radius: 7px;
+	background: #d7f99b;
+	color: #171e0e;
+	font-size: 13px;
+	font-weight: 600;
+}
+.skip-link:focus {
+	top: 15px;
+}
+.dashboard-primary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 9px;
+	background: #bba3f1;
+	color: #241a33;
+	border: 1px solid #bba3f1;
+	border-radius: 7px;
+	padding: 11px 16px;
+	font-size: 12px;
+	font-weight: 650;
+	transition:
+		background 0.2s,
+		transform 0.2s;
+}
+.dashboard-primary:hover {
+	background: #ccb6ff;
+	transform: translateY(-1px);
+}
+.dashboard-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border: 1px solid #ffffff18;
+	color: #bcaccd;
+	border-radius: 7px;
+	padding: 9px 12px;
+	font-size: 11px;
+	background: #ffffff02;
+	transition: background 0.2s;
+}
+.dashboard-secondary:hover {
+	background: #ffffff07;
+	color: #eee4fc;
+}
+.dashboard-main {
+	background-image: radial-gradient(ellipse at 70% 0%, #a78bfa05, transparent 50%);
+}
+.dashboard-main .text-zinc-500 {
+	color: #a69ab5;
+}
+.dashboard-main .text-zinc-600 {
+	color: #9b8baa;
+}
+.dashboard-main .text-zinc-400 {
+	color: #b0a6be;
+}
+.dashboard-main .text-zinc-550 {
+	color: #9b8baa;
+}
+.dashboard-main .text-3xs {
+	font-size: 10px;
+}
+.dashboard-main input:not([type='checkbox']):not([type='file']),
+.dashboard-main select {
+	min-height: 40px;
+}
+.dashboard-main table th {
+	font-size: 10px;
+	font-weight: 500;
+	letter-spacing: 0.7px;
+}
+.dashboard-main table td {
+	padding-top: 18px;
+	padding-bottom: 18px;
+}
+.dashboard-main [data-slot='empty'] {
+	border-color: #a78bfa2a;
+}
+.dashboard-body > div {
+	max-width: 1200px;
+	margin-inline: auto;
+}
+.auth-screen {
+	min-height: 100svh;
+	padding-block: 90px 60px;
+}
+.auth-screen > a {
+	font-size: 12px;
+	color: #b5a5c7;
+}
+.auth-screen > .max-w-md {
+	max-width: 380px;
+}
+.auth-screen h1 {
+	font-size: 35px;
+	font-weight: 500;
+	letter-spacing: -1.2px;
+}
+.auth-screen .text-zinc-500 {
+	color: #b1a2bf;
+}
+.auth-screen input {
+	background: #17131e;
+	border-color: #ffffff17;
+	border-radius: 8px;
+}
+.auth-screen input::placeholder {
+	color: #a092b0;
+}
+.auth-screen button[type='submit'] {
+	background: #bba3f1;
+	color: #21172d;
+	font-size: 12px;
+	text-transform: none;
+	letter-spacing: 0;
+	border-radius: 8px;
+}
+.auth-screen button[type='submit']:hover {
+	background: #ccb6ff;
+}
+.auth-screen .bg-lime-400 {
+	background: #bba3f1;
+}
+@media (min-width: 1001px) {
+	.auth-screen {
+		margin-left: 50%;
+		width: 50%;
+	}
+	.auth-screen > a {
+		left: 36px;
+		top: 35px;
+	}
+}
+@media (max-width: 640px) {
+	.auth-screen {
+		padding-inline: 25px;
+	}
+	.auth-screen input {
+		font-size: 16px;
+	}
+	.dashboard-main input:not([type='checkbox']):not([type='file']),
+	.dashboard-main select {
+		font-size: 16px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
 	}
 }

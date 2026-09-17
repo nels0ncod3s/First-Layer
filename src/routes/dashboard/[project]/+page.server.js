@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 // data.project arrives from dashboard/[project]/+layout.server.js above
@@ -9,6 +10,7 @@ import { API_URL } from '$env/static/private';
 // dashboard page that has no server load at all.
 export const load = async ({ params, locals, fetch }) => {
 	const { session } = await locals.safeGetSession();
+	if (!session) throw redirect(303, '/login');
 
 	async function loadStats() {
 		const res = await fetch(`${API_URL}/api/projects/${params.project}/users`, {

@@ -1,54 +1,84 @@
 <script>
-	import { onMount } from "svelte";
-
+	import { onMount } from 'svelte';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	let visible = $state(false);
-	const COOKIE_NAME = "cookie_consent";
-	const MAX_AGE = 60 * 60 * 24 * 365; // 1 year
-
-	function readConsent() {
-		const match = document.cookie.match(/(?:^|; )cookie_consent=([^;]*)/);
-		return match ? decodeURIComponent(match[1]) : null;
-	}
-
-	function writeConsent(value) {
-		document.cookie = `${COOKIE_NAME}=${value}; path=/; max-age=${MAX_AGE}; SameSite=Lax`;
-	}
-
 	onMount(() => {
-		visible = readConsent() === null;
+		visible = !document.cookie.match(/(?:^|; )cookie_consent=/);
 	});
-
-	function accept() {
-		writeConsent("accepted");
+	function acknowledge() {
+		document.cookie = `cookie_consent=acknowledged; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
 		visible = false;
-		// Hook future non-essential scripts (analytics, etc.) up here.
-	}
-
-	function decline() {
-		writeConsent("declined");
-		visible = false;
-		// See note below — nothing to actually disable today.
 	}
 </script>
 
 {#if visible}
-	<div
-		role="dialog"
-		aria-label="Cookie preferences"
-		class="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-md px-4 py-4 sm:px-6"
-	>
-		<div class="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<p class="text-sm text-zinc-300">
-				We use strictly necessary cookies to keep you signed in and your session secure. We don't use tracking or advertising cookies.
-			</p>
-			<div class="flex shrink-0 gap-2">
-				<button onclick={decline} class="rounded-lg border border-zinc-800 bg-transparent px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors">
-					Decline
-				</button>
-				<button onclick={accept} class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors">
-					Accept
-				</button>
-			</div>
+	<aside class="cookie-notice" aria-label="Essential cookies">
+		<ShieldCheck size={20} />
+		<div>
+			<strong>Just the essentials.</strong>
+			<p>We use cookies to keep you signed in. No tracking or advertising cookies.</p>
 		</div>
-	</div>
+		<button onclick={acknowledge}>Got it</button>
+	</aside>
 {/if}
+
+<style>
+	.cookie-notice {
+		position: fixed;
+		bottom: 20px;
+		left: 20px;
+		z-index: 50;
+		max-width: 440px;
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		padding: 18px;
+		background: #211a2dee;
+		border: 1px solid #bba3f133;
+		backdrop-filter: blur(20px);
+		box-shadow: 0 10px 40px #0004;
+		border-radius: 10px;
+		color: #dfd1ef;
+	}
+	.cookie-notice > :global(svg) {
+		color: #bba3f1;
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+	.cookie-notice strong {
+		font-size: 12px;
+		font-weight: 550;
+	}
+	.cookie-notice p {
+		font-size: 11px;
+		line-height: 1.8;
+		color: #b4a5c5;
+		margin-top: 5px;
+	}
+	.cookie-notice button {
+		white-space: nowrap;
+		flex-shrink: 0;
+		padding: 8px 12px;
+		background: #bba3f1;
+		color: #241a33;
+		border-radius: 6px;
+		font-size: 11px;
+		font-weight: 600;
+	}
+	@media (max-width: 640px) {
+		.cookie-notice {
+			bottom: 12px;
+			left: 12px;
+			right: 12px;
+			max-width: none;
+			padding: 15px;
+			gap: 10px;
+		}
+		.cookie-notice p {
+			font-size: 11px;
+		}
+		.cookie-notice button {
+			padding: 9px 11px;
+		}
+	}
+</style>

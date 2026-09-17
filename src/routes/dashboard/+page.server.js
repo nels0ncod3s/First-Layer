@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 // The project list itself still comes from dashboard/+layout.server.js (the
@@ -8,6 +8,7 @@ import { API_URL } from '$env/static/private';
 // per-project stats round trip once did on the project overview page.
 export const load = async ({ locals, fetch }) => {
 	const { session } = await locals.safeGetSession();
+	if (!session) throw redirect(303, '/login');
 
 	async function loadCounts() {
 		const res = await fetch(`${API_URL}/api/projects/counts`, {

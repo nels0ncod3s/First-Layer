@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 // data.project arrives from dashboard/[project]/+layout.server.js above
@@ -9,6 +10,7 @@ import { API_URL } from '$env/static/private';
 // Streamed (unawaited) so navigating here is instant.
 export const load = async ({ params, locals, fetch }) => {
 	const { session } = await locals.safeGetSession();
+	if (!session) throw redirect(303, '/login');
 	const headers = { Authorization: `Bearer ${session.access_token}` };
 
 	async function loadEvents() {
