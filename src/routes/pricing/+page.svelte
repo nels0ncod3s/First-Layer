@@ -7,7 +7,7 @@
 		{
 			id: 'free',
 			name: 'Free',
-			price: '$0',
+			price: '₦0',
 			period: '/mo',
 			tagline: 'For side projects and testing the waters.',
 			cta: 'Start free',
@@ -24,7 +24,7 @@
 		{
 			id: 'pro',
 			name: 'Pro',
-			price: '$29',
+			price: '₦45,000',
 			period: '/mo',
 			tagline: 'For products that are live and growing.',
 			cta: 'Start building free',
