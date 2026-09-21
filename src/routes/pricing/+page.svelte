@@ -24,7 +24,7 @@
 		{
 			id: 'pro',
 			name: 'Pro',
-			price: '₦45,000',
+			price: '₦25,000',
 			period: '/mo',
 			tagline: 'For products that are live and growing.',
 			cta: 'Start building free',
