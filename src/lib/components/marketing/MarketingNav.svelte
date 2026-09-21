@@ -121,8 +121,8 @@
 		gap: 18px;
 		align-items: center;
 		justify-content: center;
-		background: #d7f99b;
-		color: #151a0e;
+		background: #b7a2ff;
+		color: #21172d;
 		border-radius: 7px;
 		padding: 12px 18px;
 		font-size: 13px;
@@ -132,7 +132,7 @@
 			transform 0.2s;
 	}
 	.nav-cta:hover {
-		background: #e5ffbd;
+		background: #c8b8ff;
 		transform: translateY(-1px);
 	}
 	.menu-toggle {
